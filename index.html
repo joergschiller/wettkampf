@@ -4,6 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Schwimmplan</title>
+<meta name="theme-color" content="#05203a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -114,8 +120,10 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 12px;
   }
   .info-bar .comp-name { color: #fff; font-weight: 500; }
+  .info-bar span:last-child { text-align: right; flex-shrink: 0; }
 
   .results-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 16px; }
   .results-title { font-size: 1.05rem; font-style: italic; color: rgba(255,255,255,0.7); }
@@ -158,6 +166,9 @@
   .divider { height: 1px; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent); margin: 4px 0 20px; }
   .day-label { font-size: 0.65rem; letter-spacing: 0.12em; text-transform: uppercase; color: #00c8ff; margin: 16px 0 8px 4px; padding: 4px 10px; background: rgba(0,200,255,0.08); border-radius: 20px; display: inline-block; }
 
+  .round-badge { font-size: 0.58rem; font-weight: 400; letter-spacing: 0.08em; text-transform: uppercase; color: #ffd166; border: 1px solid rgba(255,209,102,0.4); border-radius: 10px; padding: 1px 6px; margin-left: 4px; vertical-align: middle; white-space: nowrap; }
+  .follow-up { font-size: 0.64rem; color: rgba(255,209,102,0.75); margin-top: 4px; }
+
   .empty-state { text-align: center; padding: 40px 20px; color: rgba(255,255,255,0.25); font-size: 0.8rem; line-height: 1.8; }
   .empty-icon { font-size: 2.5rem; display: block; margin-bottom: 12px; }
 
@@ -183,7 +194,7 @@
 
 <header>
   <div class="logo">Schwimm<span>plan</span></div>
-  <div class="tagline">Meldeergebnis auf einen Blick &nbsp;·&nbsp; v4</div>
+  <div class="tagline">Meldeergebnis auf einen Blick &nbsp;·&nbsp; v5</div>
 </header>
 
 <div class="presets-section">
@@ -222,7 +233,15 @@
   pdfjsLib.GlobalWorkerOptions.workerSrc =
     'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-  const LANE_COLORS = { 1:'#0077b6', 2:'#0096c7', 3:'#00b4d8', 4:'#48cae4', 5:'#90e0ef' };
+  const LANE_COLORS = {
+    0:'#7b8cde', 1:'#0077b6', 2:'#0096c7', 3:'#00b4d8', 4:'#48cae4',
+    5:'#90e0ef', 6:'#06d6a0', 7:'#8ac926', 8:'#ffd166', 9:'#f4a261'
+  };
+
+  function esc(v) {
+    return String(v ?? '').replace(/[&<>"']/g, c =>
+      ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+  }
 
   // ── Preset competitions ──────────────────────────────────────────────────────
   const PRESETS = [
@@ -245,8 +264,8 @@
     container.innerHTML = PRESETS.map((p, i) => `
       <button class="preset-btn ${activePreset === i ? 'active' : ''}" onclick="loadPreset(${i})">
         <div>
-          <div class="preset-name">${p.name}</div>
-          <div class="preset-date">${p.subtitle}</div>
+          <div class="preset-name">${esc(p.name)}</div>
+          <div class="preset-date">${esc(p.subtitle)}</div>
         </div>
         <span class="preset-arrow">${activePreset === i ? '✓' : '→'}</span>
       </button>
@@ -297,7 +316,7 @@
 
   function handleFile(file) {
     if (!file) return;
-    if (file.type !== 'application/pdf') { showError('Bitte eine PDF-Datei hochladen.'); return; }
+    if (file.type !== 'application/pdf' && !/\.pdf$/i.test(file.name)) { showError('Bitte eine PDF-Datei hochladen.'); return; }
     processPDF(file);
   }
 
@@ -305,34 +324,69 @@
 
 
   // ── EasyWk parser ───────────────────────────────────────────────────────────
-  function parseEasyWk(text) {
+  const GENDER_RE = /\s*\b(m[äa]nnlich|weiblich|mixed)\b\s*/i;
+
+  // "50m Brust männlich (Vorlauf) (10 Läufe) (ca. 09:15 Uhr)"
+  //   → { base: '50m Brust', gender: 'männlich', round: 'Vorlauf', time: '09:15' }
+  function parseEventTitle(title) {
+    let rest = title.trim();
+    let time = '';
+    const t = rest.match(/\s*\(ca\.\s*(\d{1,2}:\d{2})\s*Uhr\)\s*$/);
+    if (t) { time = t[1]; rest = rest.slice(0, t.index); }
+    rest = rest.replace(/\s*\(\d+\s*L[äa]ufe?\)\s*$/, '');
+    let round = '';
+    const r = rest.match(/\s*\(([^()]+)\)\s*$/);
+    if (r) { round = r[1].trim(); rest = rest.slice(0, r.index); }
+    const g = rest.match(GENDER_RE);
+    const gender = g ? g[1].toLowerCase() : '';
+    const base = rest.replace(GENDER_RE, ' ').replace(/\s+/g, ' ').trim();
+    return { base, gender, round, time };
+  }
+
+  // Key used to connect a Vorlauf with its Finale(s): "50m Brust|männlich".
+  // Only distance + stroke, so "25m Freistil SpeedRace" matches "25m Freistil (SpeedRace Finale)".
+  function followUpKey(ev) {
+    return ev.base.split(' ').slice(0, 2).join(' ').toLowerCase() + '|' + ev.gender;
+  }
+
+  function parseCompetitionHeader(lines) {
     const competition = {};
+    for (let i = 0; i < lines.length; i++) {
+      const m = lines[i].match(/^(.*?)\s*\bvom\s+(\d{2}\.\d{2}\.\d{4})(?:\s+bis\s+(\d{2}\.\d{2}\.\d{4}))?/);
+      if (!m) continue;
+      const name = m[1] || lines[i - 1] || '';
+      if (!name || /Meldeergebnis/i.test(name)) continue;
+      competition.name = name.trim();
+      competition.date = m[3] && m[3] !== m[2] ? `${m[2]} – ${m[3]}` : m[2];
+      break;
+    }
+    return competition;
+  }
 
-    const nameMatch = text.match(/Meldeergebnis\s*\n([^\n]+)/);
-    if (nameMatch) competition.name = nameMatch[1].trim();
-
-    const dateMatch = text.match(/am\s+(\d{2}\.\d{2}\.\d{4})/);
-    if (dateMatch) competition.date = dateMatch[1];
-
-    const starts = [];
-    let currentWettkampfNr = null;
-    let currentEventName   = '';
-    let currentHeat        = '';
-    let currentTime        = '';
-    let currentDay         = '';
-
+  function parseEasyWk(text) {
     const lines = text.split('\n').map(l => l.replace(/\s+/g, ' ').trim()).filter(Boolean);
+    const competition = parseCompetitionHeader(lines);
+
+    const starts  = [];
+    const program = [];            // Wettkampffolge in Dokument-Reihenfolge (erste Nennung je WK)
+    const seenWk  = new Set();
+    let currentWk      = null;
+    let currentHeat    = '';
+    let currentTime    = '';
+    let currentDay     = '';
+    let currentSection = 0;
 
     for (const line of lines) {
       // Abschnitt/day header: "Abschnitt 1 - Samstag 26.09.2026"
-      const abschnitt = line.match(/^Abschnitt\s+\d+\s*[-–]\s*(\w+\s+\d{2}\.\d{2}\.\d{4})/);
-      if (abschnitt) { currentDay = abschnitt[1].trim(); continue; }
+      const abschnitt = line.match(/^Abschnitt\s+(\d+)\s*[-–]\s*(\S+\s+\d{2}\.\d{2}\.\d{4})/);
+      if (abschnitt) { currentSection = parseInt(abschnitt[1]); currentDay = abschnitt[2]; continue; }
 
-      // Wettkampf header: "Wettkampf 5 - 50m Schmetterling mixed"
-      const wk = line.match(/^Wettkampf\s+(\d+)\s*[-–]\s*(.+?)(?:\s*\(\d+\s*L[äa]ufe\))?(?:\s*\(ca\.\s*[\d:]+\s*Uhr\))?$/);
+      // Wettkampf header: "Wettkampf 5 - 50m Schmetterling männlich (Vorlauf) (6 Läufe) (ca. 10:26 Uhr)"
+      const wk = line.match(/^Wettkampf\s+(\d+)\s*[-–]\s*(.+)$/);
       if (wk) {
-        currentWettkampfNr = parseInt(wk[1]);
-        currentEventName   = wk[2].replace(/\s*mixed\s*/i, '').replace(/\s*m[äa]nnlich\s*/i, '').replace(/\s*weiblich\s*/i, '').trim();
+        const nr = parseInt(wk[1]);
+        currentWk = { nr, ...parseEventTitle(wk[2]), day: currentDay, section: currentSection };
+        if (!seenWk.has(nr)) { seenWk.add(nr); program.push(currentWk); }
         continue;
       }
 
@@ -348,32 +402,72 @@
       // Format B: "Bahn 1   Schiller, Torenius   2016   SC Poseidon Berlin   00:48,30"
       // Format C: "Bahn 3   Yannick Schroeter   2003 | S10   SV Berolina   3,5,H,12+   02:47,07"
       const bahnA = line.match(/^Bahn\s+(\d+)\s+(.+?)\s+\((W|M)\)\s+(\d{4})\s+(.+?)\s+(\d{2}:\d{2},\d{2})$/);
-      const bahnB = !bahnA && line.match(/^Bahn\s+(\d+)\s+([A-Z\u00C0-\u00FFa-z][^,]+,[^\d]+?)\s+(\d{4})\s+(.+?)\s+(\d{2}:\d{2},\d{2})$/);
+      const bahnB = !bahnA && line.match(/^Bahn\s+(\d+)\s+([A-ZÀ-ÿa-z][^,]+,[^\d]+?)\s+(\d{4})\s+(.+?)\s+(\d{2}:\d{2},\d{2})$/);
       const bahnC = !bahnA && !bahnB && line.match(/^Bahn\s+(\d+)\s+(.+?)\s+(\d{4})(?:\s*\|\s*\S+)?\s+(.+?)\s+(\d{2}:\d{2},\d{2})$/);
-      if (bahnA || bahnB || bahnC) {
+      if ((bahnA || bahnB || bahnC) && currentWk) {
         const b = bahnA || bahnB || bahnC;
         let rawName = b[2].trim();
         if (rawName.includes(',')) {
           const parts = rawName.split(',');
           rawName = parts[1].trim() + ' ' + parts[0].trim();
         }
+        // Exceptions-Spalte (z. B. "3,5,H,12+") vom Vereinsnamen trennen
+        const club = (bahnA ? bahnA[5] : (bahnB ? bahnB[4] : bahnC[4]))
+          .replace(/\s+[\dA-Z+]+(?:,[\dA-Z+]+)+$/, '').trim();
         starts.push({
           laneNum:       parseInt(b[1]),
           name:          rawName,
           gender:        bahnA ? bahnA[3] : '',
           jg:            bahnA ? bahnA[4] : (bahnB ? bahnB[3] : bahnC[3]),
-          club:          bahnA ? bahnA[5].trim() : (bahnB ? bahnB[4].trim() : bahnC[4].trim()),
+          club,
           meldezeit:     bahnA ? bahnA[6] : (bahnB ? bahnB[5] : bahnC[5]),
-          event:         currentEventName,
-          wettkampfNr:   currentWettkampfNr,
+          event:         currentWk.base,
+          round:         currentWk.round,
+          wettkampfNr:   currentWk.nr,
           heat:          currentHeat,
           time:          currentTime,
           day:           currentDay,
+          section:       currentSection,
+          followUps:     [],
         });
       }
     }
 
+    attachFollowUps(starts, program);
     return { competition, starts };
+  }
+
+  // Finals and further rounds are listed in the Wettkampffolge without heats (the
+  // qualified swimmers are not known yet). For every Vorlauf start we look them up
+  // in the same Abschnitt and estimate the time window from the neighbouring events.
+  function attachFollowUps(starts, program) {
+    const withEntries = new Set(starts.map(s => s.wettkampfNr));
+    const byNr = new Map(program.map(ev => [ev.nr, ev]));
+
+    starts.forEach(s => {
+      if (!/vorlauf/i.test(s.round)) return;
+      const heat = byNr.get(s.wettkampfNr);
+      if (!heat) return;
+      const key = followUpKey(heat);
+      const seenKinds = new Set();
+      program.forEach((ev, idx) => {
+        if (ev === heat || ev.section !== heat.section || withEntries.has(ev.nr)) return;
+        if (!ev.round || /vorlauf/i.test(ev.round) || followUpKey(ev) !== key) return;
+        // Only the first of "1. Runde", "2. Runde", … – the rest follows directly after.
+        const kind = ev.round.replace(/\d+\.?\s*/g, '').toLowerCase();
+        if (seenKinds.has(kind)) return;
+        seenKinds.add(kind);
+
+        let from = '', to = '';
+        for (let i = idx - 1; i >= 0 && program[i].section === ev.section; i--)
+          if (program[i].time) { from = program[i].time; break; }
+        for (let i = idx + 1; i < program.length && program[i].section === ev.section; i++)
+          if (program[i].time) { to = program[i].time; break; }
+
+        const extra = ev.base.split(' ').slice(2).join(' ');
+        s.followUps.push({ nr: ev.nr, label: extra ? `${extra} (${ev.round})` : ev.round, from, to });
+      });
+    });
   }
 
   // ── Main processing ─────────────────────────────────────────────────────────
@@ -436,7 +530,7 @@
     names.forEach(n => {
       const div = document.createElement('div');
       div.className = 'chip' + (activeNames.has(n) ? '' : ' off');
-      div.innerHTML = `${n} <span class="chip-x">✕</span>`;
+      div.innerHTML = `${esc(n)} <span class="chip-x">✕</span>`;
       div.querySelector('.chip-x').onclick = e => { e.stopPropagation(); removeName(n); };
       div.onclick = () => toggleName(n);
       container.appendChild(div);
@@ -486,21 +580,46 @@
     return m ? parseInt(m[1]) * 60 + parseInt(m[2]) : 9999;
   }
 
+  function renderStartCard(s) {
+    const color = LANE_COLORS[s.laneNum] || '#00c8ff';
+    const mz    = s.meldezeit && s.meldezeit !== '00:00,00' ? ` · ${esc(s.meldezeit)}` : '';
+    const round = s.round ? ` <span class="round-badge">${esc(s.round)}</span>` : '';
+    const follow = s.followUps.map(f => {
+      const win = f.from && f.to ? `ca. ${f.from}–${f.to} Uhr` : (f.from ? `nach ca. ${f.from} Uhr` : '');
+      return `<div class="follow-up">↳ ggf. WK ${f.nr} · ${esc(f.label)}${win ? ' · ' + win : ''}</div>`;
+    }).join('');
+    return `<div class="start-card">
+      <div class="lane-bar" style="background:${color}"></div>
+      <div class="start-time"><small>ca.</small>${esc(s.time)} Uhr</div>
+      <div>
+        <div class="start-event">${esc(s.event)}${round}</div>
+        <div class="start-meta">WK ${s.wettkampfNr} · Lauf ${esc(s.heat)}${mz}</div>
+        ${follow}
+      </div>
+      <div>
+        <div class="lane-num" style="color:${color}">${s.laneNum}</div>
+        <div class="lane-label">Bahn</div>
+      </div>
+    </div>`;
+  }
+
   function renderResults() {
     const area = document.getElementById('results');
     if (allStarts.length === 0) return;
 
-    // Build swimmer map
+    // Build swimmer map (keyed by name + Jahrgang, so namesakes stay apart)
     const swimmerMap = new Map();
     allStarts.forEach(s => {
       const matched = [...activeNames].find(n =>
-        n.toLowerCase().split(' ').every(part => s.name.toLowerCase().includes(part))
+        n.toLowerCase().split(/\s+/).every(part => s.name.toLowerCase().includes(part))
       );
       if (!matched) return;
-      if (!swimmerMap.has(s.name)) swimmerMap.set(s.name, { jg: s.jg, starts: [] });
-      swimmerMap.get(s.name).starts.push(s);
+      const key = s.name + '|' + s.jg;
+      if (!swimmerMap.has(key)) swimmerMap.set(key, { name: s.name, jg: s.jg, club: s.club, starts: [] });
+      swimmerMap.get(key).starts.push(s);
     });
-    swimmerMap.forEach(d => d.starts.sort((a, b) => timeToMin(a.time) - timeToMin(b.time)));
+    swimmerMap.forEach(d => d.starts.sort((a, b) =>
+      (a.section - b.section) || (timeToMin(a.time) - timeToMin(b.time))));
     const total = [...swimmerMap.values()].reduce((sum, d) => sum + d.starts.length, 0);
 
     if (swimmerMap.size === 0) {
@@ -511,65 +630,33 @@
     let html = '';
 
     if (competitionInfo.name) {
-      html += `<div class="info-bar"><span class="comp-name">${competitionInfo.name}</span><span>${competitionInfo.date || ''}</span></div>`;
+      html += `<div class="info-bar"><span class="comp-name">${esc(competitionInfo.name)}</span><span>${esc(competitionInfo.date || '')}</span></div>`;
     }
 
-    html += `<div class="results-header"><div class="results-title">Deine Starts</div><div class="results-count">${total} Starts gesamt</div></div>`;
+    html += `<div class="results-header"><div class="results-title">Deine Starts</div><div class="results-count">${total} Start${total !== 1 ? 's' : ''} gesamt</div></div>`;
 
-    const entries = [...swimmerMap.entries()];
-    entries.forEach(([swimmerName, data], idx) => {
-      const initials = swimmerName.split(' ').map(w => w[0]).slice(0, 2).join('');
+    const entries = [...swimmerMap.values()];
+    entries.forEach((data, idx) => {
+      const initials = data.name.split(' ').map(w => w[0]).slice(0, 2).join('');
 
       html += `<div class="swimmer-block">
         <div class="swimmer-header">
-          <div class="avatar">${initials}</div>
+          <div class="avatar">${esc(initials)}</div>
           <div>
-            <div class="swimmer-name">${swimmerName}</div>
-            <div class="swimmer-sub">Jahrgang ${data.jg} · ${data.starts.length} Start${data.starts.length !== 1 ? 's' : ''}</div>
+            <div class="swimmer-name">${esc(data.name)}</div>
+            <div class="swimmer-sub">Jahrgang ${esc(data.jg)} · ${esc(data.club)} · ${data.starts.length} Start${data.starts.length !== 1 ? 's' : ''}</div>
           </div>
         </div>`;
 
-      // Group starts by day
-      const days = [...new Set(data.starts.map(s => s.day).filter(Boolean))];
-      const multiDay = days.length > 1;
-
-      if (multiDay) {
+      // Group starts by day (starts are already in chronological order)
+      const days = [...new Set(data.starts.map(s => s.day))];
+      if (days.length > 1) {
         days.forEach(day => {
-          html += `<div class="day-label">${day}</div>`;
-          data.starts.filter(s => s.day === day).forEach(s => {
-            const color = LANE_COLORS[s.laneNum] || '#00c8ff';
-            const mz = s.meldezeit && s.meldezeit !== '00:00,00' ? ` · ${s.meldezeit}` : '';
-            html += `<div class="start-card">
-              <div class="lane-bar" style="background:${color}"></div>
-              <div class="start-time"><small>ca.</small>${s.time} Uhr</div>
-              <div>
-                <div class="start-event">${s.event}</div>
-                <div class="start-meta">WK ${s.wettkampfNr} · Lauf ${s.heat}${mz}</div>
-              </div>
-              <div>
-                <div class="lane-num" style="color:${color}">${s.laneNum}</div>
-                <div class="lane-label">Bahn</div>
-              </div>
-            </div>`;
-          });
+          if (day) html += `<div class="day-label">${esc(day)}</div>`;
+          data.starts.filter(s => s.day === day).forEach(s => { html += renderStartCard(s); });
         });
       } else {
-        data.starts.forEach(s => {
-          const color = LANE_COLORS[s.laneNum] || '#00c8ff';
-          const mz    = s.meldezeit && s.meldezeit !== '00:00,00' ? ` · ${s.meldezeit}` : '';
-          html += `<div class="start-card">
-            <div class="lane-bar" style="background:${color}"></div>
-            <div class="start-time"><small>ca.</small>${s.time} Uhr</div>
-            <div>
-              <div class="start-event">${s.event}</div>
-              <div class="start-meta">WK ${s.wettkampfNr} · Lauf ${s.heat}${mz}</div>
-            </div>
-            <div>
-              <div class="lane-num" style="color:${color}">${s.laneNum}</div>
-              <div class="lane-label">Bahn</div>
-            </div>
-          </div>`;
-        });
+        data.starts.forEach(s => { html += renderStartCard(s); });
       }
 
       html += `</div>`;
@@ -604,6 +691,11 @@
   if (savedPreset !== null) {
     const idx = parseInt(savedPreset);
     if (!isNaN(idx) && idx < PRESETS.length) loadPreset(idx);
+  }
+
+  // Offline-Unterstützung (nur über http(s), nicht bei file://)
+  if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
   }
 </script>
 </body>
