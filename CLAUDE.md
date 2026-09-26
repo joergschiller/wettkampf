@@ -43,7 +43,7 @@ Zeitfenster aus den benachbarten Wettkämpfen angezeigt.
 
 ## Deployment
 GitHub Pages: `main`-Branch, Root-Verzeichnis.
-URL-Schema: `https://USERNAME.github.io/meldeliste/`
+URL-Schema: `https://USERNAME.github.io/wettkampf/`
 
 ## Offene Punkte / mögliche nächste Schritte
 - Capacitor-Wrapper für Android APK
