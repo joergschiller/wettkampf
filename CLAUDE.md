@@ -42,6 +42,9 @@ Zeitfenster aus den benachbarten Wettkämpfen angezeigt.
 - Bei mehrtägigen Wettkämpfen: Starts chronologisch nach Tag gruppiert mit Tages-Label
 - Farbkodierung nach Bahnnummer (0–9)
 - Vorlauf/Finale-Badge, bei Vorläufen Hinweis auf mögliches Finale inkl. Zeitfenster
+- Countdown pro Kind: nächster Start hervorgehoben (blau „Nächster Start“, gelb „Gleich dran“ ab
+  `SOON_MIN` = 30 Min, grün „Jetzt dran“ bis `NOW_MIN` = 10 Min nach der ca.-Zeit), vergangene Starts
+  gedimmt mit „✓ vorbei“. Aktualisiert alle 30 s und beim Zurückkehren in die App (visibilitychange/focus).
 - PWA: Service Worker cacht App, PDF.js und geöffnete Preset-PDFs (beim Ändern von Dateien `CACHE` in `sw.js` hochzählen)
 
 ## Deployment
@@ -51,3 +54,6 @@ DNS: CNAME `wettkampf` → `joergschiller.github.io` bei Namecheap FreeDNS, HTTP
 
 ## Offene Punkte / mögliche nächste Schritte
 - Capacitor-Wrapper für Android APK
+
+## Arbeitsweise
+- Änderungen nicht selbst mergen: erst PR öffnen und dem Nutzer Screenshots zeigen, gemergt wird erst nach Freigabe.
