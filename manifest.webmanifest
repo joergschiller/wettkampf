@@ -1,0 +1,16 @@
+{
+  "name": "Schwimmplan",
+  "short_name": "Schwimmplan",
+  "description": "Meldeergebnis auf einen Blick – die Starts der eigenen Kinder aus EasyWk-PDFs.",
+  "lang": "de",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#05203a",
+  "theme_color": "#05203a",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icons/icon.svg", "sizes": "any", "type": "image/svg+xml" }
+  ]
+}

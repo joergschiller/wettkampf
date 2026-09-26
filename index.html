@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Schwimmplan</title>
+<meta name="theme-color" content="#05203a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    min-height: 100vh;
+    background: linear-gradient(160deg, #05203a 0%, #071f35 60%, #05203a 100%);
+    color: #fff;
+    font-family: 'DM Mono', 'Courier New', monospace;
+    padding: 0 16px 80px;
+  }
+
+  header {
+    text-align: center;
+    padding: 36px 0 24px;
+  }
+  .logo { font-size: 1.9rem; font-weight: 700; letter-spacing: -0.02em; line-height: 1; }
+  .logo span { color: #00c8ff; }
+  .tagline { font-size: 0.65rem; color: rgba(255,255,255,0.35); letter-spacing: 0.15em; text-transform: uppercase; margin-top: 6px; }
+
+  .upload-zone {
+    border: 1.5px dashed rgba(0,200,255,0.3);
+    border-radius: 16px;
+    padding: 28px 20px;
+    text-align: center;
+    cursor: pointer;
+    background: rgba(0,200,255,0.03);
+    margin-bottom: 20px;
+    transition: all 0.2s;
+    position: relative;
+  }
+  .upload-zone:hover, .upload-zone.drag-over {
+    border-color: #00c8ff;
+    background: rgba(0,200,255,0.08);
+  }
+  .upload-zone input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+  .upload-icon { font-size: 2rem; margin-bottom: 8px; }
+  .upload-label { font-size: 0.85rem; color: rgba(255,255,255,0.6); }
+  .upload-label strong { color: #00c8ff; }
+
+  .error-box {
+    background: rgba(255,80,80,0.1);
+    border: 1px solid rgba(255,80,80,0.3);
+    border-radius: 10px;
+    padding: 12px 16px;
+    font-size: 0.78rem;
+    color: #ff8080;
+    margin-bottom: 16px;
+    display: none;
+  }
+
+  .section-label { font-size: 0.65rem; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(255,255,255,0.4); margin-bottom: 10px; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+  .chip {
+    background: rgba(255,209,102,0.15);
+    border: 1px solid rgba(255,209,102,0.4);
+    color: #ffd166;
+    border-radius: 20px;
+    padding: 5px 12px;
+    font-size: 0.78rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: inherit;
+  }
+  .chip.off { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.15); color: rgba(255,255,255,0.4); }
+  .chip-x { font-size: 0.7rem; opacity: 0.6; }
+
+  .add-row { display: flex; gap: 8px; }
+  .add-row input {
+    flex: 1;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 8px;
+    padding: 8px 12px;
+    color: #fff;
+    font-family: inherit;
+    font-size: 0.8rem;
+    outline: none;
+  }
+  .add-row input:focus { border-color: #00c8ff; }
+  .add-row input::placeholder { color: rgba(255,255,255,0.25); }
+  .btn-add {
+    background: #00c8ff;
+    color: #05203a;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-family: inherit;
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+  }
+
+  .loading { text-align: center; padding: 40px; color: #00c8ff; font-size: 0.8rem; letter-spacing: 0.08em; display: none; }
+
+  .info-bar {
+    background: rgba(0,200,255,0.08);
+    border: 1px solid rgba(0,200,255,0.15);
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 0.72rem;
+    color: rgba(255,255,255,0.5);
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+  }
+  .info-bar .comp-name { color: #fff; font-weight: 500; }
+  .info-bar span:last-child { text-align: right; flex-shrink: 0; }
+
+  .results-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 16px; }
+  .results-title { font-size: 1.05rem; font-style: italic; color: rgba(255,255,255,0.7); }
+  .results-count { font-size: 0.7rem; color: #00c8ff; }
+
+  .swimmer-block { margin-bottom: 24px; }
+  .swimmer-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; padding: 0 4px; }
+  .avatar {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #00c8ff, #0077b6);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.75rem; font-weight: 500; color: #05203a;
+    flex-shrink: 0;
+  }
+  .swimmer-name { font-size: 1.05rem; font-weight: 700; }
+  .swimmer-sub { font-size: 0.68rem; color: rgba(255,255,255,0.35); letter-spacing: 0.08em; }
+
+  .start-card {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin-bottom: 8px;
+    display: grid;
+    grid-template-columns: 64px 1fr auto;
+    gap: 12px;
+    align-items: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .lane-bar { position: absolute; left: 0; top: 0; bottom: 0; width: 3px; }
+  .start-time { font-size: 0.82rem; color: #00c8ff; }
+  .start-time small { display: block; font-size: 0.58rem; color: rgba(255,255,255,0.3); letter-spacing: 0.08em; }
+  .start-event { font-size: 0.82rem; font-weight: 500; }
+  .start-meta { font-size: 0.68rem; color: rgba(255,255,255,0.4); margin-top: 2px; letter-spacing: 0.05em; }
+  .lane-num { font-size: 1.5rem; font-weight: 700; line-height: 1; text-align: right; }
+  .lane-label { font-size: 0.55rem; color: rgba(255,255,255,0.3); letter-spacing: 0.1em; text-transform: uppercase; text-align: right; }
+
+  .divider { height: 1px; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent); margin: 4px 0 20px; }
+  .day-label { font-size: 0.65rem; letter-spacing: 0.12em; text-transform: uppercase; color: #00c8ff; margin: 16px 0 8px 4px; padding: 4px 10px; background: rgba(0,200,255,0.08); border-radius: 20px; display: inline-block; }
+
+  .round-badge { font-size: 0.58rem; font-weight: 400; letter-spacing: 0.08em; text-transform: uppercase; color: #ffd166; border: 1px solid rgba(255,209,102,0.4); border-radius: 10px; padding: 1px 6px; margin-left: 4px; vertical-align: middle; white-space: nowrap; }
+  .follow-up { font-size: 0.64rem; color: rgba(255,209,102,0.75); margin-top: 4px; }
+
+  .empty-state { text-align: center; padding: 40px 20px; color: rgba(255,255,255,0.25); font-size: 0.8rem; line-height: 1.8; }
+  .empty-icon { font-size: 2.5rem; display: block; margin-bottom: 12px; }
+
+  #results { margin-top: 4px; }
+
+  .presets-section { margin-bottom: 20px; }
+  .preset-btn {
+    display: flex; align-items: center; justify-content: space-between;
+    width: 100%; background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.1); border-radius: 10px;
+    padding: 12px 16px; margin-bottom: 8px; cursor: pointer;
+    font-family: inherit; color: #fff; text-align: left;
+    transition: background 0.15s;
+  }
+  .preset-btn:hover { background: rgba(0,200,255,0.08); border-color: rgba(0,200,255,0.3); }
+  .preset-btn.active { background: rgba(0,200,255,0.12); border-color: rgba(0,200,255,0.5); }
+  .preset-name { font-size: 0.82rem; font-weight: 500; }
+  .preset-date { font-size: 0.68rem; color: rgba(255,255,255,0.4); margin-top: 3px; }
+  .preset-arrow { color: #00c8ff; font-size: 0.9rem; flex-shrink: 0; margin-left: 12px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Schwimm<span>plan</span></div>
+  <div class="tagline">Meldeergebnis auf einen Blick &nbsp;·&nbsp; v5</div>
+</header>
+
+<div class="presets-section">
+  <div class="section-label">Gespeicherte Wettkämpfe</div>
+  <div id="presetList"></div>
+</div>
+
+<div class="section-label" style="margin-bottom:10px">Eigene PDF hochladen</div>
+<div class="upload-zone" id="uploadZone">
+  <input type="file" accept="application/pdf" id="fileInput" />
+  <div class="upload-icon">🏊</div>
+  <div class="upload-label"><strong>PDF hochladen</strong><br>Meldeergebnis antippen oder reinziehen</div>
+</div>
+
+<div class="error-box" id="errorBox"></div>
+<div class="loading" id="loading">PDF wird gelesen…</div>
+
+<div style="margin-bottom:20px">
+  <div class="section-label">Meine Kinder</div>
+  <div class="chips" id="chips"></div>
+  <div class="add-row">
+    <input type="text" id="nameInput" placeholder="Name eingeben…" />
+    <button class="btn-add" onclick="addName()">+ Hinzufügen</button>
+  </div>
+</div>
+
+<div id="results">
+  <div class="empty-state">
+    <span class="empty-icon">📄</span>
+    PDF hochladen und Namen eingeben,<br>dann werden die Starts angezeigt.
+  </div>
+</div>
+
+<script>
+  // ── Config ──────────────────────────────────────────────────────────────────
+  pdfjsLib.GlobalWorkerOptions.workerSrc =
+    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+  const LANE_COLORS = {
+    0:'#7b8cde', 1:'#0077b6', 2:'#0096c7', 3:'#00b4d8', 4:'#48cae4',
+    5:'#90e0ef', 6:'#06d6a0', 7:'#8ac926', 8:'#ffd166', 9:'#f4a261'
+  };
+
+  function esc(v) {
+    return String(v ?? '').replace(/[&<>"']/g, c =>
+      ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+  }
+
+  // ── Preset competitions ──────────────────────────────────────────────────────
+  const PRESETS = [
+    {
+      name: '29. Int. Sportbad-Pokal',
+      subtitle: 'SG Neukölln · 23.–24.05.2026',
+      file: '260523-Berlin-SC_Beispielstadt.pdf'
+    },
+    {
+      name: 'International Swim-Cup 2026',
+      subtitle: 'Berlin · 26.–27.09.2026',
+      file: 'mm086.pdf'
+    }
+  ];
+
+  let activePreset = null;
+
+  function renderPresets() {
+    const container = document.getElementById('presetList');
+    container.innerHTML = PRESETS.map((p, i) => `
+      <button class="preset-btn ${activePreset === i ? 'active' : ''}" onclick="loadPreset(${i})">
+        <div>
+          <div class="preset-name">${esc(p.name)}</div>
+          <div class="preset-date">${esc(p.subtitle)}</div>
+        </div>
+        <span class="preset-arrow">${activePreset === i ? '✓' : '→'}</span>
+      </button>
+    `).join('');
+  }
+
+  async function loadPreset(idx) {
+    activePreset = idx;
+    localStorage.setItem('schwimmplan_preset', idx);
+    renderPresets();
+    showError('');
+    document.getElementById('loading').style.display = 'block';
+    document.getElementById('results').innerHTML = '';
+    allStarts = [];
+    try {
+      const response = await fetch(PRESETS[idx].file);
+      if (!response.ok) throw new Error('Datei nicht gefunden: ' + PRESETS[idx].file);
+      const buffer = await response.arrayBuffer();
+      const text = await extractTextFromBuffer(buffer);
+      const parsed = parseEasyWk(text);
+      if (parsed.starts.length === 0) throw new Error('Keine Starts gefunden.');
+      competitionInfo = parsed.competition;
+      allStarts = parsed.starts;
+      renderResults();
+    } catch (err) {
+      showError('Fehler: ' + err.message);
+    } finally {
+      document.getElementById('loading').style.display = 'none';
+    }
+  }
+
+  let names = [];
+  let activeNames = new Set(names);
+  let allStarts = [];
+  let competitionInfo = {};
+
+  // ── Upload ──────────────────────────────────────────────────────────────────
+  const uploadZone = document.getElementById('uploadZone');
+  const fileInput  = document.getElementById('fileInput');
+
+  fileInput.addEventListener('change', e => handleFile(e.target.files[0]));
+  uploadZone.addEventListener('dragover',  e => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
+  uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
+  uploadZone.addEventListener('drop', e => {
+    e.preventDefault(); uploadZone.classList.remove('drag-over');
+    handleFile(e.dataTransfer.files[0]);
+  });
+
+  function handleFile(file) {
+    if (!file) return;
+    if (file.type !== 'application/pdf' && !/\.pdf$/i.test(file.name)) { showError('Bitte eine PDF-Datei hochladen.'); return; }
+    processPDF(file);
+  }
+
+  // ── PDF.js text extraction ──────────────────────────────────────────────────
+
+
+  // ── EasyWk parser ───────────────────────────────────────────────────────────
+  const GENDER_RE = /\s*\b(m[äa]nnlich|weiblich|mixed)\b\s*/i;
+
+  // "50m Brust männlich (Vorlauf) (10 Läufe) (ca. 09:15 Uhr)"
+  //   → { base: '50m Brust', gender: 'männlich', round: 'Vorlauf', time: '09:15' }
+  function parseEventTitle(title) {
+    let rest = title.trim();
+    let time = '';
+    const t = rest.match(/\s*\(ca\.\s*(\d{1,2}:\d{2})\s*Uhr\)\s*$/);
+    if (t) { time = t[1]; rest = rest.slice(0, t.index); }
+    rest = rest.replace(/\s*\(\d+\s*L[äa]ufe?\)\s*$/, '');
+    let round = '';
+    const r = rest.match(/\s*\(([^()]+)\)\s*$/);
+    if (r) { round = r[1].trim(); rest = rest.slice(0, r.index); }
+    const g = rest.match(GENDER_RE);
+    const gender = g ? g[1].toLowerCase() : '';
+    const base = rest.replace(GENDER_RE, ' ').replace(/\s+/g, ' ').trim();
+    return { base, gender, round, time };
+  }
+
+  // Key used to connect a Vorlauf with its Finale(s): "50m Brust|männlich".
+  // Only distance + stroke, so "25m Freistil SpeedRace" matches "25m Freistil (SpeedRace Finale)".
+  function followUpKey(ev) {
+    return ev.base.split(' ').slice(0, 2).join(' ').toLowerCase() + '|' + ev.gender;
+  }
+
+  function parseCompetitionHeader(lines) {
+    const competition = {};
+    for (let i = 0; i < lines.length; i++) {
+      const m = lines[i].match(/^(.*?)\s*\bvom\s+(\d{2}\.\d{2}\.\d{4})(?:\s+bis\s+(\d{2}\.\d{2}\.\d{4}))?/);
+      if (!m) continue;
+      const name = m[1] || lines[i - 1] || '';
+      if (!name || /Meldeergebnis/i.test(name)) continue;
+      competition.name = name.trim();
+      competition.date = m[3] && m[3] !== m[2] ? `${m[2]} – ${m[3]}` : m[2];
+      break;
+    }
+    return competition;
+  }
+
+  function parseEasyWk(text) {
+    const lines = text.split('\n').map(l => l.replace(/\s+/g, ' ').trim()).filter(Boolean);
+    const competition = parseCompetitionHeader(lines);
+
+    const starts  = [];
+    const program = [];            // Wettkampffolge in Dokument-Reihenfolge (erste Nennung je WK)
+    const seenWk  = new Set();
+    let currentWk      = null;
+    let currentHeat    = '';
+    let currentTime    = '';
+    let currentDay     = '';
+    let currentSection = 0;
+
+    for (const line of lines) {
+      // Abschnitt/day header: "Abschnitt 1 - Samstag 26.09.2026"
+      const abschnitt = line.match(/^Abschnitt\s+(\d+)\s*[-–]\s*(\S+\s+\d{2}\.\d{2}\.\d{4})/);
+      if (abschnitt) { currentSection = parseInt(abschnitt[1]); currentDay = abschnitt[2]; continue; }
+
+      // Wettkampf header: "Wettkampf 5 - 50m Schmetterling männlich (Vorlauf) (6 Läufe) (ca. 10:26 Uhr)"
+      const wk = line.match(/^Wettkampf\s+(\d+)\s*[-–]\s*(.+)$/);
+      if (wk) {
+        const nr = parseInt(wk[1]);
+        currentWk = { nr, ...parseEventTitle(wk[2]), day: currentDay, section: currentSection };
+        if (!seenWk.has(nr)) { seenWk.add(nr); program.push(currentWk); }
+        continue;
+      }
+
+      // Heat header: "Lauf 3/7 - ca. 09:42 Uhr"
+      const heat = line.match(/Lauf\s+(\d+)\/(\d+)\s*[-–]\s*ca\.\s*(\d{1,2}:\d{2})\s*Uhr/);
+      if (heat) {
+        currentHeat = `${heat[1]}/${heat[2]}`;
+        currentTime = heat[3];
+        continue;
+      }
+
+      // Format A: "Bahn 3 Max Mustermann (M) 2016 SC Beispielstadt 00:57,66"
+      // Format B: "Bahn 1   Mustermann, Max   2016   SC Beispielstadt   00:48,30"
+      // Format C: "Bahn 3   Erika Musterfrau   2003 | S10   SV Musterhausen   3,5,H,12+   02:47,07"
+      const bahnA = line.match(/^Bahn\s+(\d+)\s+(.+?)\s+\((W|M)\)\s+(\d{4})\s+(.+?)\s+(\d{2}:\d{2},\d{2})$/);
+      const bahnB = !bahnA && line.match(/^Bahn\s+(\d+)\s+([A-ZÀ-ÿa-z][^,]+,[^\d]+?)\s+(\d{4})\s+(.+?)\s+(\d{2}:\d{2},\d{2})$/);
+      const bahnC = !bahnA && !bahnB && line.match(/^Bahn\s+(\d+)\s+(.+?)\s+(\d{4})(?:\s*\|\s*\S+)?\s+(.+?)\s+(\d{2}:\d{2},\d{2})$/);
+      if ((bahnA || bahnB || bahnC) && currentWk) {
+        const b = bahnA || bahnB || bahnC;
+        let rawName = b[2].trim();
+        if (rawName.includes(',')) {
+          const parts = rawName.split(',');
+          rawName = parts[1].trim() + ' ' + parts[0].trim();
+        }
+        // Exceptions-Spalte (z. B. "3,5,H,12+") vom Vereinsnamen trennen
+        const club = (bahnA ? bahnA[5] : (bahnB ? bahnB[4] : bahnC[4]))
+          .replace(/\s+[\dA-Z+]+(?:,[\dA-Z+]+)+$/, '').trim();
+        starts.push({
+          laneNum:       parseInt(b[1]),
+          name:          rawName,
+          gender:        bahnA ? bahnA[3] : '',
+          jg:            bahnA ? bahnA[4] : (bahnB ? bahnB[3] : bahnC[3]),
+          club,
+          meldezeit:     bahnA ? bahnA[6] : (bahnB ? bahnB[5] : bahnC[5]),
+          event:         currentWk.base,
+          round:         currentWk.round,
+          wettkampfNr:   currentWk.nr,
+          heat:          currentHeat,
+          time:          currentTime,
+          day:           currentDay,
+          section:       currentSection,
+          followUps:     [],
+        });
+      }
+    }
+
+    attachFollowUps(starts, program);
+    return { competition, starts };
+  }
+
+  // Finals and further rounds are listed in the Wettkampffolge without heats (the
+  // qualified swimmers are not known yet). For every Vorlauf start we look them up
+  // in the same Abschnitt and estimate the time window from the neighbouring events.
+  function attachFollowUps(starts, program) {
+    const withEntries = new Set(starts.map(s => s.wettkampfNr));
+    const byNr = new Map(program.map(ev => [ev.nr, ev]));
+
+    starts.forEach(s => {
+      if (!/vorlauf/i.test(s.round)) return;
+      const heat = byNr.get(s.wettkampfNr);
+      if (!heat) return;
+      const key = followUpKey(heat);
+      const seenKinds = new Set();
+      program.forEach((ev, idx) => {
+        if (ev === heat || ev.section !== heat.section || withEntries.has(ev.nr)) return;
+        if (!ev.round || /vorlauf/i.test(ev.round) || followUpKey(ev) !== key) return;
+        // Only the first of "1. Runde", "2. Runde", … – the rest follows directly after.
+        const kind = ev.round.replace(/\d+\.?\s*/g, '').toLowerCase();
+        if (seenKinds.has(kind)) return;
+        seenKinds.add(kind);
+
+        let from = '', to = '';
+        for (let i = idx - 1; i >= 0 && program[i].section === ev.section; i--)
+          if (program[i].time) { from = program[i].time; break; }
+        for (let i = idx + 1; i < program.length && program[i].section === ev.section; i++)
+          if (program[i].time) { to = program[i].time; break; }
+
+        const extra = ev.base.split(' ').slice(2).join(' ');
+        s.followUps.push({ nr: ev.nr, label: extra ? `${extra} (${ev.round})` : ev.round, from, to });
+      });
+    });
+  }
+
+  // ── Main processing ─────────────────────────────────────────────────────────
+  async function extractTextFromBuffer(buffer) {
+    const pdf = await pdfjsLib.getDocument({ data: buffer }).promise;
+    const allLines = [];
+    for (let p = 1; p <= pdf.numPages; p++) {
+      const page    = await pdf.getPage(p);
+      const content = await page.getTextContent();
+      const byY = new Map();
+      for (const item of content.items) {
+        const y = Math.round(item.transform[5]);
+        if (!byY.has(y)) byY.set(y, []);
+        byY.get(y).push({ x: item.transform[4], str: item.str });
+      }
+      const sortedYs = [...byY.keys()].sort((a, b) => b - a);
+      for (const y of sortedYs) {
+        const items = byY.get(y).sort((a, b) => a.x - b.x);
+        allLines.push(items.map(i => i.str).join(' '));
+      }
+    }
+    return allLines.join('\n');
+  }
+
+  async function extractText(file) {
+    const buffer = await file.arrayBuffer();
+    return extractTextFromBuffer(buffer);
+  }
+
+  async function processPDF(file) {
+    activePreset = null;
+    localStorage.removeItem('schwimmplan_preset');
+    renderPresets();
+    showError('');
+    document.getElementById('loading').style.display = 'block';
+    document.getElementById('results').innerHTML = '';
+    allStarts = [];
+
+    try {
+      const text = await extractText(file);
+      const parsed = parseEasyWk(text);
+
+      if (parsed.starts.length === 0)
+        throw new Error('Keine Starts gefunden – ist das eine EasyWk-Meldeergebnis-PDF?');
+
+      competitionInfo = parsed.competition;
+      allStarts       = parsed.starts;
+      renderResults();
+    } catch (err) {
+      showError('Fehler: ' + err.message);
+    } finally {
+      document.getElementById('loading').style.display = 'none';
+    }
+  }
+
+  // ── Name chips ──────────────────────────────────────────────────────────────
+  function renderChips() {
+    const container = document.getElementById('chips');
+    container.innerHTML = '';
+    names.forEach(n => {
+      const div = document.createElement('div');
+      div.className = 'chip' + (activeNames.has(n) ? '' : ' off');
+      div.innerHTML = `${esc(n)} <span class="chip-x">✕</span>`;
+      div.querySelector('.chip-x').onclick = e => { e.stopPropagation(); removeName(n); };
+      div.onclick = () => toggleName(n);
+      container.appendChild(div);
+    });
+  }
+
+  function saveNames() {
+    localStorage.setItem('schwimmplan_names', JSON.stringify(names));
+  }
+
+  function addName() {
+    const input = document.getElementById('nameInput');
+    const val   = input.value.trim();
+    if (val && !names.includes(val)) {
+      names.push(val);
+      activeNames.add(val);
+      saveNames();
+      renderChips();
+      renderResults();
+    }
+    input.value = '';
+    input.focus();
+  }
+
+  function removeName(n) {
+    names = names.filter(x => x !== n);
+    activeNames.delete(n);
+    saveNames();
+    renderChips();
+    renderResults();
+  }
+
+  function toggleName(n) {
+    activeNames.has(n) ? activeNames.delete(n) : activeNames.add(n);
+    renderChips();
+    renderResults();
+  }
+
+  document.getElementById('nameInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') addName();
+  });
+
+  // ── Render results ──────────────────────────────────────────────────────────
+  function timeToMin(t) {
+    if (!t) return 9999;
+    const m = t.match(/(\d{1,2}):(\d{2})/);
+    return m ? parseInt(m[1]) * 60 + parseInt(m[2]) : 9999;
+  }
+
+  function renderStartCard(s) {
+    const color = LANE_COLORS[s.laneNum] || '#00c8ff';
+    const mz    = s.meldezeit && s.meldezeit !== '00:00,00' ? ` · ${esc(s.meldezeit)}` : '';
+    const round = s.round ? ` <span class="round-badge">${esc(s.round)}</span>` : '';
+    const follow = s.followUps.map(f => {
+      const win = f.from && f.to ? `ca. ${f.from}–${f.to} Uhr` : (f.from ? `nach ca. ${f.from} Uhr` : '');
+      return `<div class="follow-up">↳ ggf. WK ${f.nr} · ${esc(f.label)}${win ? ' · ' + win : ''}</div>`;
+    }).join('');
+    return `<div class="start-card">
+      <div class="lane-bar" style="background:${color}"></div>
+      <div class="start-time"><small>ca.</small>${esc(s.time)} Uhr</div>
+      <div>
+        <div class="start-event">${esc(s.event)}${round}</div>
+        <div class="start-meta">WK ${s.wettkampfNr} · Lauf ${esc(s.heat)}${mz}</div>
+        ${follow}
+      </div>
+      <div>
+        <div class="lane-num" style="color:${color}">${s.laneNum}</div>
+        <div class="lane-label">Bahn</div>
+      </div>
+    </div>`;
+  }
+
+  function renderResults() {
+    const area = document.getElementById('results');
+    if (allStarts.length === 0) return;
+
+    // Build swimmer map (keyed by name + Jahrgang, so namesakes stay apart)
+    const swimmerMap = new Map();
+    allStarts.forEach(s => {
+      const matched = [...activeNames].find(n =>
+        n.toLowerCase().split(/\s+/).every(part => s.name.toLowerCase().includes(part))
+      );
+      if (!matched) return;
+      const key = s.name + '|' + s.jg;
+      if (!swimmerMap.has(key)) swimmerMap.set(key, { name: s.name, jg: s.jg, club: s.club, starts: [] });
+      swimmerMap.get(key).starts.push(s);
+    });
+    swimmerMap.forEach(d => d.starts.sort((a, b) =>
+      (a.section - b.section) || (timeToMin(a.time) - timeToMin(b.time))));
+    const total = [...swimmerMap.values()].reduce((sum, d) => sum + d.starts.length, 0);
+
+    if (swimmerMap.size === 0) {
+      area.innerHTML = `<div class="empty-state"><span class="empty-icon">🔍</span>Keine Starts für die angegebenen Namen gefunden.</div>`;
+      return;
+    }
+
+    let html = '';
+
+    if (competitionInfo.name) {
+      html += `<div class="info-bar"><span class="comp-name">${esc(competitionInfo.name)}</span><span>${esc(competitionInfo.date || '')}</span></div>`;
+    }
+
+    html += `<div class="results-header"><div class="results-title">Deine Starts</div><div class="results-count">${total} Start${total !== 1 ? 's' : ''} gesamt</div></div>`;
+
+    const entries = [...swimmerMap.values()];
+    entries.forEach((data, idx) => {
+      const initials = data.name.split(' ').map(w => w[0]).slice(0, 2).join('');
+
+      html += `<div class="swimmer-block">
+        <div class="swimmer-header">
+          <div class="avatar">${esc(initials)}</div>
+          <div>
+            <div class="swimmer-name">${esc(data.name)}</div>
+            <div class="swimmer-sub">Jahrgang ${esc(data.jg)} · ${esc(data.club)} · ${data.starts.length} Start${data.starts.length !== 1 ? 's' : ''}</div>
+          </div>
+        </div>`;
+
+      // Group starts by day (starts are already in chronological order)
+      const days = [...new Set(data.starts.map(s => s.day))];
+      if (days.length > 1) {
+        days.forEach(day => {
+          if (day) html += `<div class="day-label">${esc(day)}</div>`;
+          data.starts.filter(s => s.day === day).forEach(s => { html += renderStartCard(s); });
+        });
+      } else {
+        data.starts.forEach(s => { html += renderStartCard(s); });
+      }
+
+      html += `</div>`;
+      if (idx < entries.length - 1) html += `<div class="divider"></div>`;
+    });
+
+    area.innerHTML = html;
+  }
+
+  // ── Helpers ─────────────────────────────────────────────────────────────────
+  function showError(msg) {
+    const el = document.getElementById('errorBox');
+    el.textContent = msg;
+    el.style.display = msg ? 'block' : 'none';
+  }
+
+  // ── Init ─────────────────────────────────────────────────────────────────────
+  // Restore names from localStorage
+  const savedNames = localStorage.getItem('schwimmplan_names');
+  if (savedNames) {
+    try {
+      names = JSON.parse(savedNames);
+      activeNames = new Set(names);
+    } catch(e) {}
+  }
+
+  renderPresets();
+  renderChips();
+
+  // Restore last selected preset
+  const savedPreset = localStorage.getItem('schwimmplan_preset');
+  if (savedPreset !== null) {
+    const idx = parseInt(savedPreset);
+    if (!isNaN(idx) && idx < PRESETS.length) loadPreset(idx);
+  }
+
+  // Offline-Unterstützung (nur über http(s), nicht bei file://)
+  if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  }
+</script>
+</body>
+</html>
