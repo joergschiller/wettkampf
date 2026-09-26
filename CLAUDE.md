@@ -34,7 +34,8 @@ Zeitfenster aus den benachbarten Wettkämpfen angezeigt.
 - Gespeicherte Wettkämpfe (Presets) per fetch() aus dem gleichen Verzeichnis – derzeit leer.
   Meldeergebnis-PDFs enthalten personenbezogene Daten (Namen, Jahrgänge) und sollen **nicht** ins
   Repo; zum Testen lokal ablegen (`*.pdf` steht in `.gitignore`).
-- Eigene PDF hochladen (Drag & Drop oder Dateiauswahl). Hochgeladene PDFs werden lokal im Browser
+- Eigene PDF hochladen (Drag & Drop auf die ganze Seite oder Dateiauswahl). Große Upload-Fläche nur,
+  solange kein Wettkampf gespeichert ist; danach kompakter Knopf „＋ PDF hinzufügen“ unter der Liste. Hochgeladene PDFs werden lokal im Browser
   gespeichert (IndexedDB `schwimmplan`, Store `competitions`: PDF + Parse-Ergebnis) und erscheinen unter
   „Gespeicherte Wettkämpfe“ (mit Löschen-Knopf). Gleicher Wettkampf (Name + Datum) ersetzt den alten Eintrag.
   Bei Parser-Änderungen `PARSER_VERSION` hochzählen, dann werden gespeicherte PDFs neu eingelesen.

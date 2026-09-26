@@ -216,6 +216,14 @@
     color: rgba(255,255,255,0.4); font-size: 0.8rem;
   }
   .preset-del:hover { color: #ff8080; border-color: rgba(255,80,80,0.4); background: rgba(255,80,80,0.08); }
+  .add-btn {
+    position: relative; display: flex; align-items: center; justify-content: center; gap: 8px;
+    width: 100%; min-height: 48px; border: 1.5px dashed rgba(0,200,255,0.35); border-radius: 10px;
+    color: #00c8ff; font-size: 0.8rem; cursor: pointer; transition: all 0.15s;
+  }
+  .add-btn:hover, .add-btn.drag-over { border-color: #00c8ff; background: rgba(0,200,255,0.08); }
+  .add-btn input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+  .add-sub { color: rgba(255,255,255,0.35); font-size: 0.66rem; }
   .preset-arrow { color: #00c8ff; font-size: 0.9rem; flex-shrink: 0; margin-left: 12px; }
 </style>
 </head>
@@ -223,19 +231,26 @@
 
 <header>
   <div class="logo">Schwimm<span>plan</span></div>
-  <div class="tagline">Meldeergebnis auf einen Blick &nbsp;·&nbsp; v7</div>
+  <div class="tagline">Meldeergebnis auf einen Blick &nbsp;·&nbsp; v8</div>
 </header>
 
 <div class="presets-section" id="presetsSection">
   <div class="section-label">Gespeicherte Wettkämpfe</div>
   <div id="presetList"></div>
+  <label class="add-btn" id="addBtn">
+    <input type="file" accept="application/pdf" class="file-input" />
+    ＋ PDF hinzufügen <span class="add-sub">· Meldeergebnis</span>
+  </label>
 </div>
 
-<div class="section-label" style="margin-bottom:10px">Eigene PDF hochladen</div>
-<div class="upload-zone" id="uploadZone">
-  <input type="file" accept="application/pdf" id="fileInput" />
-  <div class="upload-icon">🏊</div>
-  <div class="upload-label"><strong>PDF hochladen</strong><br>Meldeergebnis antippen oder reinziehen</div>
+<!-- Große Upload-Fläche nur, solange noch kein Wettkampf gespeichert ist -->
+<div id="uploadSection">
+  <div class="section-label" style="margin-bottom:10px">Eigene PDF hochladen</div>
+  <div class="upload-zone" id="uploadZone">
+    <input type="file" accept="application/pdf" class="file-input" />
+    <div class="upload-icon">🏊</div>
+    <div class="upload-label"><strong>PDF hochladen</strong><br>Meldeergebnis antippen oder reinziehen</div>
+  </div>
 </div>
 
 <div class="error-box" id="errorBox"></div>
@@ -325,6 +340,7 @@
   function renderPresets() {
     const list = compList();
     document.getElementById('presetsSection').style.display = list.length ? '' : 'none';
+    document.getElementById('uploadSection').style.display  = list.length ? 'none' : '';
     const container = document.getElementById('presetList');
     container.innerHTML = list.map(c => `
       <div class="preset-row">
@@ -428,14 +444,23 @@
   let competitionInfo = {};
 
   // ── Upload ──────────────────────────────────────────────────────────────────
-  const uploadZone = document.getElementById('uploadZone');
-  const fileInput  = document.getElementById('fileInput');
+  // Große Fläche (erster Besuch) und kompakter Knopf teilen sich die Logik;
+  // reinziehen geht auf die ganze Seite.
+  document.querySelectorAll('.file-input').forEach(input => input.addEventListener('change', e => {
+    handleFile(e.target.files[0]);
+    e.target.value = '';   // dieselbe Datei erneut auswählbar
+  }));
 
-  fileInput.addEventListener('change', e => handleFile(e.target.files[0]));
-  uploadZone.addEventListener('dragover',  e => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
-  uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
-  uploadZone.addEventListener('drop', e => {
-    e.preventDefault(); uploadZone.classList.remove('drag-over');
+  const dropTargets = [document.getElementById('uploadZone'), document.getElementById('addBtn')];
+  const setDragOver = on => dropTargets.forEach(el => el.classList.toggle('drag-over', on));
+  document.addEventListener('dragover', e => {
+    if (![...e.dataTransfer.types].includes('Files')) return;
+    e.preventDefault(); setDragOver(true);
+  });
+  document.addEventListener('dragleave', e => { if (!e.relatedTarget) setDragOver(false); });
+  document.addEventListener('drop', e => {
+    if (!e.dataTransfer.files.length) return;
+    e.preventDefault(); setDragOver(false);
     handleFile(e.dataTransfer.files[0]);
   });
 
