@@ -10,6 +10,7 @@ Wird als statische Seite auf GitHub Pages gehostet.
 - `index.html` — die komplette App (alles in einer Datei)
 - `260523-Berlin-SC_Beispielstadt.pdf` — Preset-Wettkampf (Format B: "Nachname, Vorname")
 - `mm086.pdf` — Preset-Wettkampf (Format C: mehrtägig, mit Jg|SK-Spalte)
+- `manifest.webmanifest`, `sw.js`, `icons/` — PWA (installierbar, offline nutzbar)
 
 ## PDF-Parser
 PDF.js extrahiert den Rohtext. Danach Regex-Parser für drei EasyWk-Formate:
@@ -22,20 +23,27 @@ Parser erkennt außerdem:
 - `Wettkampf N - Disziplin` → aktueller Wettkampf
 - `Lauf N/M - ca. HH:MM Uhr` → aktueller Lauf + Uhrzeit
 - `Abschnitt N - Wochentag DD.MM.YYYY` → aktueller Tag (für mehrtägige Wettkämpfe)
+- `<Name> vom DD.MM.YYYY bis DD.MM.YYYY` (Seitenkopf) → Wettkampfname + Datum
+- Runde aus der letzten Klammer im Wettkampftitel (`Vorlauf`, `Finale`, `A-Finale`, `Jugendfinale`, `1. Runde` …)
+- Exceptions-Spalte (z. B. `3,5,H,12+`) wird vom Vereinsnamen abgetrennt
+
+Finals stehen nur in der Wettkampffolge (ohne Läufe). Für jeden Vorlauf-Start werden passende
+Finals im selben Abschnitt gesucht (gleiche Strecke + Lage + Geschlecht) und mit einem
+Zeitfenster aus den benachbarten Wettkämpfen angezeigt.
 
 ## Features
 - Namen der Kinder per Chip-UI, gespeichert in localStorage
 - Letzter gewählter Preset-Wettkampf in localStorage gespeichert
 - Gespeicherte Wettkämpfe (Presets) per fetch() aus dem gleichen Verzeichnis
 - Eigene PDF hochladen (Drag & Drop oder Dateiauswahl)
-- Bei mehrtägigen Wettkämpfen: Starts nach Tag gruppiert mit Tages-Label
-- Farbkodierung nach Bahnnummer (1–9+)
+- Bei mehrtägigen Wettkämpfen: Starts chronologisch nach Tag gruppiert mit Tages-Label
+- Farbkodierung nach Bahnnummer (0–9)
+- Vorlauf/Finale-Badge, bei Vorläufen Hinweis auf mögliches Finale inkl. Zeitfenster
+- PWA: Service Worker cacht App, PDF.js und geöffnete Preset-PDFs (beim Ändern von Dateien `CACHE` in `sw.js` hochzählen)
 
 ## Deployment
 GitHub Pages: `main`-Branch, Root-Verzeichnis.
-URL-Schema: `https://USERNAME.github.io/schwimmplan/`
+URL-Schema: `https://USERNAME.github.io/meldeliste/`
 
 ## Offene Punkte / mögliche nächste Schritte
-- PWA-Manifest + Service Worker für Offline-Nutzung
 - Capacitor-Wrapper für Android APK
-- Finale Lauf-Info (F, A-Finale) von Vorlauf unterscheiden
