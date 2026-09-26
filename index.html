@@ -187,6 +187,14 @@
   .preset-btn.active { background: rgba(0,200,255,0.12); border-color: rgba(0,200,255,0.5); }
   .preset-name { font-size: 0.82rem; font-weight: 500; }
   .preset-date { font-size: 0.68rem; color: rgba(255,255,255,0.4); margin-top: 3px; }
+  .preset-row { display: flex; gap: 8px; align-items: stretch; margin-bottom: 8px; }
+  .preset-row .preset-btn { margin-bottom: 0; flex: 1; min-width: 0; }
+  .preset-del {
+    flex-shrink: 0; width: 44px; border-radius: 10px; cursor: pointer; font-family: inherit;
+    background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1);
+    color: rgba(255,255,255,0.4); font-size: 0.8rem;
+  }
+  .preset-del:hover { color: #ff8080; border-color: rgba(255,80,80,0.4); background: rgba(255,80,80,0.08); }
   .preset-arrow { color: #00c8ff; font-size: 0.9rem; flex-shrink: 0; margin-left: 12px; }
 </style>
 </head>
@@ -194,7 +202,7 @@
 
 <header>
   <div class="logo">Schwimm<span>plan</span></div>
-  <div class="tagline">Meldeergebnis auf einen Blick &nbsp;·&nbsp; v5</div>
+  <div class="tagline">Meldeergebnis auf einen Blick &nbsp;·&nbsp; v6</div>
 </header>
 
 <div class="presets-section" id="presetsSection">
@@ -243,52 +251,155 @@
       ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
   }
 
-  // ── Preset competitions ──────────────────────────────────────────────────────
+  // ── Gespeicherte Wettkämpfe ─────────────────────────────────────────────────
+  // Hochgeladene PDFs werden lokal im Browser (IndexedDB) gespeichert – sie verlassen
+  // das Gerät nicht. Zusätzlich wird das Parse-Ergebnis abgelegt, damit das Öffnen
+  // schnell geht; ändert sich der Parser, PARSER_VERSION hochzählen → neu einlesen.
+  const PARSER_VERSION = 1;
+
   // Optional: PDFs neben index.html legen und hier eintragen, z. B.
   // { name: 'Wettkampfname', subtitle: 'Ort · Datum', file: 'datei.pdf' }
   // Achtung: alles im Repo ist über GitHub Pages öffentlich.
   const PRESETS = [];
 
-  let activePreset = null;
+  const store = {
+    db: null,
+    open() {
+      if (this.db) return this.db;
+      this.db = new Promise((resolve, reject) => {
+        const req = indexedDB.open('schwimmplan', 1);
+        req.onupgradeneeded = () => req.result.createObjectStore('competitions', { keyPath: 'id' });
+        req.onsuccess = () => resolve(req.result);
+        req.onerror   = () => reject(req.error);
+      });
+      return this.db;
+    },
+    async run(mode, fn) {
+      const db = await this.open();
+      return new Promise((resolve, reject) => {
+        const tx  = db.transaction('competitions', mode);
+        const req = fn(tx.objectStore('competitions'));
+        tx.oncomplete = () => resolve(req && req.result);
+        tx.onerror    = () => reject(tx.error);
+        tx.onabort    = () => reject(tx.error);
+      });
+    },
+    all()     { return this.run('readonly',  os => os.getAll()); },
+    get(id)   { return this.run('readonly',  os => os.get(id)); },
+    put(rec)  { return this.run('readwrite', os => os.put(rec)); },
+    del(id)   { return this.run('readwrite', os => os.delete(id)); },
+  };
 
-  function renderPresets() {
-    document.getElementById('presetsSection').style.display = PRESETS.length ? '' : 'none';
-    const container = document.getElementById('presetList');
-    container.innerHTML = PRESETS.map((p, i) => `
-      <button class="preset-btn ${activePreset === i ? 'active' : ''}" onclick="loadPreset(${i})">
-        <div>
-          <div class="preset-name">${esc(p.name)}</div>
-          <div class="preset-date">${esc(p.subtitle)}</div>
-        </div>
-        <span class="preset-arrow">${activePreset === i ? '✓' : '→'}</span>
-      </button>
-    `).join('');
+  let savedComps = [];     // Metadaten der gespeicherten Uploads (ohne PDF-Daten)
+  let activeId   = null;   // 'preset:<i>' oder 'upload:<key>'
+
+  function compList() {
+    const presets = PRESETS.map((p, i) => ({ id: 'preset:' + i, name: p.name, subtitle: p.subtitle, preset: true }));
+    const uploads = [...savedComps]
+      .sort((a, b) => b.addedAt - a.addedAt)
+      .map(c => ({ id: c.id, name: c.name, subtitle: c.date || c.fileName, preset: false }));
+    return [...uploads, ...presets];
   }
 
-  async function loadPreset(idx) {
-    activePreset = idx;
-    localStorage.setItem('schwimmplan_preset', idx);
+  function renderPresets() {
+    const list = compList();
+    document.getElementById('presetsSection').style.display = list.length ? '' : 'none';
+    const container = document.getElementById('presetList');
+    container.innerHTML = list.map(c => `
+      <div class="preset-row">
+        <button class="preset-btn ${activeId === c.id ? 'active' : ''}" data-open="${esc(c.id)}">
+          <div>
+            <div class="preset-name">${esc(c.name)}</div>
+            <div class="preset-date">${esc(c.subtitle)}</div>
+          </div>
+          <span class="preset-arrow">${activeId === c.id ? '✓' : '→'}</span>
+        </button>
+        ${c.preset ? '' : `<button class="preset-del" data-del="${esc(c.id)}" title="Löschen" aria-label="${esc(c.name)} löschen">✕</button>`}
+      </div>
+    `).join('');
+    container.querySelectorAll('[data-open]').forEach(b => b.onclick = () => openCompetition(b.dataset.open));
+    container.querySelectorAll('[data-del]').forEach(b => b.onclick = () => deleteCompetition(b.dataset.del));
+  }
+
+  function setActive(id) {
+    activeId = id;
+    try { id ? localStorage.setItem('schwimmplan_active', id) : localStorage.removeItem('schwimmplan_active'); } catch (e) {}
     renderPresets();
+  }
+
+  async function withLoading(fn) {
     showError('');
     document.getElementById('loading').style.display = 'block';
     document.getElementById('results').innerHTML = '';
     allStarts = [];
     try {
-      const response = await fetch(PRESETS[idx].file);
-      if (!response.ok) throw new Error('Datei nicht gefunden: ' + PRESETS[idx].file);
-      const buffer = await response.arrayBuffer();
-      const text = await extractTextFromBuffer(buffer);
-      const parsed = parseEasyWk(text);
-      if (parsed.starts.length === 0) throw new Error('Keine Starts gefunden.');
-      competitionInfo = parsed.competition;
-      allStarts = parsed.starts;
-      renderResults();
+      await fn();
     } catch (err) {
       showError('Fehler: ' + err.message);
     } finally {
       document.getElementById('loading').style.display = 'none';
     }
   }
+
+  function showParsed(parsed) {
+    competitionInfo = parsed.competition;
+    allStarts       = parsed.starts;
+    renderResults();
+  }
+
+  async function parseBuffer(buffer) {
+    const parsed = parseEasyWk(await extractTextFromBuffer(buffer));
+    if (parsed.starts.length === 0)
+      throw new Error('Keine Starts gefunden – ist das eine EasyWk-Meldeergebnis-PDF?');
+    return parsed;
+  }
+
+  function openCompetition(id) {
+    setActive(id);
+    return withLoading(async () => {
+      if (id.startsWith('preset:')) {
+        const preset = PRESETS[parseInt(id.slice(7))];
+        if (!preset) throw new Error('Wettkampf nicht gefunden.');
+        const response = await fetch(preset.file);
+        if (!response.ok) throw new Error('Datei nicht gefunden: ' + preset.file);
+        showParsed(await parseBuffer(await response.arrayBuffer()));
+        return;
+      }
+      const rec = await store.get(id);
+      if (!rec) { setActive(null); throw new Error('Gespeicherter Wettkampf nicht mehr vorhanden.'); }
+      if (rec.parserVersion !== PARSER_VERSION || !rec.parsed) {
+        rec.parsed = await parseBuffer(rec.pdf.slice(0));
+        rec.parserVersion = PARSER_VERSION;
+        store.put(rec).catch(() => {});
+      }
+      showParsed(rec.parsed);
+    });
+  }
+
+  async function deleteCompetition(id) {
+    const comp = savedComps.find(c => c.id === id);
+    if (!comp || !confirm(`„${comp.name}“ vom Gerät löschen?`)) return;
+    try { await store.del(id); } catch (e) {}
+    savedComps = savedComps.filter(c => c.id !== id);
+    if (activeId === id) {
+      setActive(null);
+      allStarts = [];
+      document.getElementById('results').innerHTML = EMPTY_HTML;
+    } else {
+      renderPresets();
+    }
+  }
+
+  async function loadSavedList() {
+    try {
+      const all = await store.all();
+      savedComps = all.map(({ pdf, parsed, ...meta }) => meta);
+    } catch (e) {
+      savedComps = [];   // z. B. privates Fenster ohne IndexedDB – App läuft trotzdem
+    }
+  }
+
+  const EMPTY_HTML = document.getElementById('results').innerHTML;
 
   let names = [];
   let activeNames = new Set(names);
@@ -485,35 +596,35 @@
     return allLines.join('\n');
   }
 
-  async function extractText(file) {
-    const buffer = await file.arrayBuffer();
-    return extractTextFromBuffer(buffer);
-  }
-
   async function processPDF(file) {
-    activePreset = null;
-    localStorage.removeItem('schwimmplan_preset');
-    renderPresets();
-    showError('');
-    document.getElementById('loading').style.display = 'block';
-    document.getElementById('results').innerHTML = '';
-    allStarts = [];
+    setActive(null);
+    await withLoading(async () => {
+      const buffer = await file.arrayBuffer();
+      const parsed = await parseBuffer(buffer.slice(0));   // PDF.js übernimmt den Buffer
+      showParsed(parsed);
 
-    try {
-      const text = await extractText(file);
-      const parsed = parseEasyWk(text);
-
-      if (parsed.starts.length === 0)
-        throw new Error('Keine Starts gefunden – ist das eine EasyWk-Meldeergebnis-PDF?');
-
-      competitionInfo = parsed.competition;
-      allStarts       = parsed.starts;
-      renderResults();
-    } catch (err) {
-      showError('Fehler: ' + err.message);
-    } finally {
-      document.getElementById('loading').style.display = 'none';
-    }
+      const c   = parsed.competition;
+      const key = c.name ? `${c.name}|${c.date || ''}` : `${file.name}|${file.size}`;
+      const rec = {
+        id: 'upload:' + key,
+        name: c.name || file.name.replace(/\.pdf$/i, ''),
+        date: c.date || '',
+        fileName: file.name,
+        addedAt: Date.now(),
+        parserVersion: PARSER_VERSION,
+        parsed,
+        pdf: buffer,
+      };
+      try {
+        await store.put(rec);
+        if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+        const { pdf, parsed: _p, ...meta } = rec;
+        savedComps = [...savedComps.filter(x => x.id !== rec.id), meta];
+        setActive(rec.id);
+      } catch (e) {
+        showError('Hinweis: Die PDF konnte auf diesem Gerät nicht gespeichert werden (privates Fenster?).');
+      }
+    });
   }
 
   // ── Name chips ──────────────────────────────────────────────────────────────
@@ -679,12 +790,15 @@
   renderPresets();
   renderChips();
 
-  // Restore last selected preset
-  const savedPreset = localStorage.getItem('schwimmplan_preset');
-  if (savedPreset !== null) {
-    const idx = parseInt(savedPreset);
-    if (!isNaN(idx) && idx < PRESETS.length) loadPreset(idx);
-  }
+  // Zuletzt geöffneten Wettkampf wiederherstellen
+  (async () => {
+    await loadSavedList();
+    let last = null;
+    try { last = localStorage.getItem('schwimmplan_active'); } catch (e) {}
+    const exists = last && compList().some(c => c.id === last);
+    renderPresets();
+    if (exists) openCompetition(last);
+  })();
 
   // Offline-Unterstützung (nur über http(s), nicht bei file://)
   if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
