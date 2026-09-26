@@ -8,8 +8,6 @@ Wird als statische Seite auf GitHub Pages gehostet.
 
 ## Dateien
 - `index.html` — die komplette App (alles in einer Datei)
-- `260523-Berlin-SC_Beispielstadt.pdf` — Preset-Wettkampf (Format B: "Nachname, Vorname")
-- `mm086.pdf` — Preset-Wettkampf (Format C: mehrtägig, mit Jg|SK-Spalte)
 - `manifest.webmanifest`, `sw.js`, `icons/` — PWA (installierbar, offline nutzbar)
 
 ## PDF-Parser
@@ -34,7 +32,9 @@ Zeitfenster aus den benachbarten Wettkämpfen angezeigt.
 ## Features
 - Namen der Kinder per Chip-UI, gespeichert in localStorage
 - Letzter gewählter Preset-Wettkampf in localStorage gespeichert
-- Gespeicherte Wettkämpfe (Presets) per fetch() aus dem gleichen Verzeichnis
+- Gespeicherte Wettkämpfe (Presets) per fetch() aus dem gleichen Verzeichnis – derzeit leer.
+  Meldeergebnis-PDFs enthalten personenbezogene Daten (Namen, Jahrgänge) und sollen **nicht** ins
+  Repo; zum Testen lokal ablegen (`*.pdf` steht in `.gitignore`).
 - Eigene PDF hochladen (Drag & Drop oder Dateiauswahl)
 - Bei mehrtägigen Wettkämpfen: Starts chronologisch nach Tag gruppiert mit Tages-Label
 - Farbkodierung nach Bahnnummer (0–9)

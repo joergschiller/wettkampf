@@ -197,7 +197,7 @@
   <div class="tagline">Meldeergebnis auf einen Blick &nbsp;·&nbsp; v5</div>
 </header>
 
-<div class="presets-section">
+<div class="presets-section" id="presetsSection">
   <div class="section-label">Gespeicherte Wettkämpfe</div>
   <div id="presetList"></div>
 </div>
@@ -244,22 +244,15 @@
   }
 
   // ── Preset competitions ──────────────────────────────────────────────────────
-  const PRESETS = [
-    {
-      name: '29. Int. Sportbad-Pokal',
-      subtitle: 'SG Neukölln · 23.–24.05.2026',
-      file: '260523-Berlin-SC_Beispielstadt.pdf'
-    },
-    {
-      name: 'International Swim-Cup 2026',
-      subtitle: 'Berlin · 26.–27.09.2026',
-      file: 'mm086.pdf'
-    }
-  ];
+  // Optional: PDFs neben index.html legen und hier eintragen, z. B.
+  // { name: 'Wettkampfname', subtitle: 'Ort · Datum', file: 'datei.pdf' }
+  // Achtung: alles im Repo ist über GitHub Pages öffentlich.
+  const PRESETS = [];
 
   let activePreset = null;
 
   function renderPresets() {
+    document.getElementById('presetsSection').style.display = PRESETS.length ? '' : 'none';
     const container = document.getElementById('presetList');
     container.innerHTML = PRESETS.map((p, i) => `
       <button class="preset-btn ${activePreset === i ? 'active' : ''}" onclick="loadPreset(${i})">
