@@ -42,8 +42,9 @@ Zeitfenster aus den benachbarten Wettkämpfen angezeigt.
 - PWA: Service Worker cacht App, PDF.js und geöffnete Preset-PDFs (beim Ändern von Dateien `CACHE` in `sw.js` hochzählen)
 
 ## Deployment
-GitHub Pages: `main`-Branch, Root-Verzeichnis.
-URL-Schema: `https://USERNAME.github.io/wettkampf/`
+GitHub Pages: `main`-Branch, Root-Verzeichnis, Repo `joergschiller/wettkampf`.
+Live unter https://wettkampf.schiller.guru/ (Custom Domain über die Datei `CNAME` – nicht löschen;
+DNS: CNAME `wettkampf` → `joergschiller.github.io` bei Namecheap FreeDNS, HTTPS erzwungen).
 
 ## Offene Punkte / mögliche nächste Schritte
 - Capacitor-Wrapper für Android APK
