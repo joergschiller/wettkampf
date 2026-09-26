@@ -169,6 +169,27 @@
   .round-badge { font-size: 0.58rem; font-weight: 400; letter-spacing: 0.08em; text-transform: uppercase; color: #ffd166; border: 1px solid rgba(255,209,102,0.4); border-radius: 10px; padding: 1px 6px; margin-left: 4px; vertical-align: middle; white-space: nowrap; }
   .follow-up { font-size: 0.64rem; color: rgba(255,209,102,0.75); margin-top: 4px; }
 
+  /* Countdown / nächster Start */
+  .next-wrap { margin-bottom: 8px; }
+  .next-label { display: flex; justify-content: space-between; align-items: center; font-size: 0.6rem; letter-spacing: 0.14em; text-transform: uppercase; color: #00c8ff; margin: 6px 4px 6px; }
+  .pulse { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: currentColor; margin-right: 6px; box-shadow: 0 0 0 4px rgba(0,200,255,0.18); animation: pulse 2s ease-in-out infinite; }
+  @keyframes pulse { 50% { opacity: 0.35; } }
+  .start-card.next { margin-bottom: 0; background: linear-gradient(135deg, rgba(0,200,255,0.16), rgba(0,200,255,0.05)); border-color: rgba(0,200,255,0.6); box-shadow: 0 0 24px rgba(0,200,255,0.18); }
+  .countdown { grid-column: 1 / -1; display: flex; align-items: baseline; gap: 6px; margin-top: 2px; padding-top: 10px; border-top: 1px solid rgba(0,200,255,0.2); }
+  .cd-in { font-size: 0.66rem; color: rgba(255,255,255,0.5); letter-spacing: 0.08em; text-transform: uppercase; }
+  .cd-num, .cd-now { font-size: 1.5rem; font-weight: 700; color: #fff; line-height: 1; }
+  .cd-unit { font-size: 0.72rem; color: rgba(255,255,255,0.6); margin-right: 6px; }
+  .next-wrap.soon .next-label { color: #ffd166; }
+  .next-wrap.soon .pulse { box-shadow: 0 0 0 4px rgba(255,209,102,0.2); }
+  .start-card.next.soon { background: linear-gradient(135deg, rgba(255,209,102,0.18), rgba(255,209,102,0.05)); border-color: rgba(255,209,102,0.7); box-shadow: 0 0 24px rgba(255,209,102,0.2); }
+  .start-card.soon .countdown { border-top-color: rgba(255,209,102,0.3); }
+  .next-wrap.now .next-label { color: #06d6a0; }
+  .next-wrap.now .pulse { box-shadow: 0 0 0 4px rgba(6,214,160,0.22); }
+  .start-card.next.now { background: linear-gradient(135deg, rgba(6,214,160,0.2), rgba(6,214,160,0.06)); border-color: rgba(6,214,160,0.75); box-shadow: 0 0 24px rgba(6,214,160,0.22); }
+  .start-card.now .countdown { border-top-color: rgba(6,214,160,0.3); }
+  .start-card.past { opacity: 0.38; }
+  .past-tag { font-size: 0.55rem; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(255,255,255,0.6); text-align: right; white-space: nowrap; }
+
   .empty-state { text-align: center; padding: 40px 20px; color: rgba(255,255,255,0.25); font-size: 0.8rem; line-height: 1.8; }
   .empty-icon { font-size: 2.5rem; display: block; margin-bottom: 12px; }
 
@@ -202,7 +223,7 @@
 
 <header>
   <div class="logo">Schwimm<span>plan</span></div>
-  <div class="tagline">Meldeergebnis auf einen Blick &nbsp;·&nbsp; v6</div>
+  <div class="tagline">Meldeergebnis auf einen Blick &nbsp;·&nbsp; v7</div>
 </header>
 
 <div class="presets-section" id="presetsSection">
@@ -684,7 +705,56 @@
     return m ? parseInt(m[1]) * 60 + parseInt(m[2]) : 9999;
   }
 
-  function renderStartCard(s) {
+  // ── Countdown ──────────────────────────────────────────────────────────────
+  const SOON_MIN = 30;   // ab hier gelb „Gleich dran“
+  const NOW_MIN  = 10;   // so lange nach der ca.-Zeit bleibt „Jetzt dran“ stehen
+
+  // Absoluter Zeitpunkt eines Starts (ms) aus Tag ("Samstag 26.09.2026") bzw.
+  // Wettkampfdatum und ca.-Uhrzeit; null wenn nicht bestimmbar.
+  function startAt(s) {
+    const d = (s.day || competitionInfo.date || '').match(/(\d{2})\.(\d{2})\.(\d{4})/);
+    const t = (s.time || '').match(/(\d{1,2}):(\d{2})/);
+    if (!d || !t) return null;
+    return new Date(+d[3], +d[2] - 1, +d[1], +t[1], +t[2]).getTime();
+  }
+
+  // Markiert pro Kind vergangene Starts und den nächsten (state: next | soon | now).
+  function countdownStates(starts, now) {
+    const states = new Map();
+    let found = false;
+    for (const s of starts) {
+      const at = startAt(s);
+      if (at === null || found) continue;
+      if (now >= at + NOW_MIN * 60000) { states.set(s, { past: true }); continue; }
+      found = true;
+      const mins = Math.ceil((at - now) / 60000);
+      states.set(s, { state: mins <= 0 ? 'now' : mins <= SOON_MIN ? 'soon' : 'next', mins });
+    }
+    return states;
+  }
+
+  function countdownHtml(mins) {
+    const d = Math.floor(mins / 1440), h = Math.floor(mins % 1440 / 60), m = mins % 60;
+    const part = (n, u) => `<span class="cd-num">${n}</span><span class="cd-unit">${u}</span>`;
+    let out = '';
+    if (d) out += part(d, d === 1 ? 'Tag' : 'Tage');
+    if (d || h) out += part(h, 'Std');
+    out += part(m, 'Min');
+    return `<span class="cd-in">in</span>${out}`;
+  }
+
+  const NEXT_LABEL = { next: 'Nächster Start', soon: 'Gleich dran', now: 'Jetzt dran' };
+
+  function renderStartCard(s, cd) {
+    const card = renderStartCardInner(s, cd);
+    if (!cd || cd.past) return card;
+    return `<div class="next-wrap ${cd.state}">
+      <div class="next-label"><span><span class="pulse"></span>${NEXT_LABEL[cd.state]}</span><span>Bahn ${s.laneNum}</span></div>
+      ${card}
+    </div>`;
+  }
+
+  function renderStartCardInner(s, cd) {
     const color = LANE_COLORS[s.laneNum] || '#00c8ff';
     const mz    = s.meldezeit && s.meldezeit !== '00:00,00' ? ` · ${esc(s.meldezeit)}` : '';
     const round = s.round ? ` <span class="round-badge">${esc(s.round)}</span>` : '';
@@ -692,7 +762,15 @@
       const win = f.from && f.to ? `ca. ${f.from}–${f.to} Uhr` : (f.from ? `nach ca. ${f.from} Uhr` : '');
       return `<div class="follow-up">↳ ggf. WK ${f.nr} · ${esc(f.label)}${win ? ' · ' + win : ''}</div>`;
     }).join('');
-    return `<div class="start-card">
+    const cls = !cd ? '' : cd.past ? ' past' : ` next ${cd.state}`;
+    const right = cd && cd.past
+      ? `<div class="past-tag">✓ vorbei</div>`
+      : `<div class="lane-num" style="color:${color}">${s.laneNum}</div>
+        <div class="lane-label">Bahn</div>`;
+    const countdown = cd && !cd.past
+      ? `<div class="countdown">${cd.state === 'now' ? '<span class="cd-now">Jetzt</span>' : countdownHtml(cd.mins)}</div>`
+      : '';
+    return `<div class="start-card${cls}">
       <div class="lane-bar" style="background:${color}"></div>
       <div class="start-time"><small>ca.</small>${esc(s.time)} Uhr</div>
       <div>
@@ -701,9 +779,9 @@
         ${follow}
       </div>
       <div>
-        <div class="lane-num" style="color:${color}">${s.laneNum}</div>
-        <div class="lane-label">Bahn</div>
+        ${right}
       </div>
+      ${countdown}
     </div>`;
   }
 
@@ -739,8 +817,10 @@
 
     html += `<div class="results-header"><div class="results-title">Deine Starts</div><div class="results-count">${total} Start${total !== 1 ? 's' : ''} gesamt</div></div>`;
 
+    const now = Date.now();
     const entries = [...swimmerMap.values()];
     entries.forEach((data, idx) => {
+      const cds = countdownStates(data.starts, now);
       const initials = data.name.split(' ').map(w => w[0]).slice(0, 2).join('');
 
       html += `<div class="swimmer-block">
@@ -757,10 +837,10 @@
       if (days.length > 1) {
         days.forEach(day => {
           if (day) html += `<div class="day-label">${esc(day)}</div>`;
-          data.starts.filter(s => s.day === day).forEach(s => { html += renderStartCard(s); });
+          data.starts.filter(s => s.day === day).forEach(s => { html += renderStartCard(s, cds.get(s)); });
         });
       } else {
-        data.starts.forEach(s => { html += renderStartCard(s); });
+        data.starts.forEach(s => { html += renderStartCard(s, cds.get(s)); });
       }
 
       html += `</div>`;
@@ -799,6 +879,11 @@
     renderPresets();
     if (exists) openCompetition(last);
   })();
+
+  // Countdown live halten: alle 30 s und sofort beim Zurückkehren in die App
+  setInterval(() => { if (!document.hidden) renderResults(); }, 30000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) renderResults(); });
+  window.addEventListener('focus', () => renderResults());
 
   // Offline-Unterstützung (nur über http(s), nicht bei file://)
   if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
