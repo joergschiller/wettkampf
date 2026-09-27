@@ -34,7 +34,8 @@ Material Design 3, helles Schema im Stil der Google-Apps (Farben als CSS-Variabl
 Systemschrift/Roboto, Material-Icons inline als SVG-Pfade in `ICONS`). Kein Dunkelmodus.
 Aufbau: Top-App-Bar mit Menü · Wettkampf-Auswahl (Bottom-Sheet) · Kinder als Filter-Chips
 („＋ Kind“ öffnet Dialog mit Live-Namensprüfung und Liste zum Entfernen) · pro Kind Countdown-Karte +
-Liste, vergangene Starts eingeklappt · FAB „PDF hinzufügen“ · Snackbar. Ohne gespeicherten Wettkampf:
+Liste, vergangene Starts eingeklappt · Snackbar. „Wettkampf hinzufügen“ im Menü (⋮) und im
+Wettkampf-Auswahlblatt (bewusst kein schwebender Knopf). Ohne gespeicherten Wettkampf:
 Startseite mit „PDF auswählen“. UI wird komplett über `render()` aus dem Zustand neu gezeichnet.
 
 ## Features
@@ -42,7 +43,7 @@ Startseite mit „PDF auswählen“. UI wird komplett über `render()` aus dem Z
 - Gespeicherte Wettkämpfe (Presets) per fetch() aus dem gleichen Verzeichnis – derzeit leer.
   Meldeergebnis-PDFs enthalten personenbezogene Daten (Namen, Jahrgänge) und sollen **nicht** ins
   Repo; zum Testen lokal ablegen (`*.pdf` steht in `.gitignore`).
-- Eigene PDF hochladen (Drag & Drop auf die ganze Seite oder Dateiauswahl über FAB, Menü, Auswahlblatt).
+- Eigene PDF hochladen (Drag & Drop auf die ganze Seite oder Dateiauswahl über Menü, Auswahlblatt, Startseite).
   Hochgeladene PDFs werden lokal im Browser
   gespeichert (IndexedDB `schwimmplan`, Store `competitions`: PDF + Parse-Ergebnis) und erscheinen unter
   der Wettkampf-Auswahl (mit Löschen-Knopf). Gleicher Wettkampf (Name + Datum) ersetzt den alten Eintrag.
