@@ -34,7 +34,7 @@
   button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
   .ic { width: 24px; height: 24px; fill: currentColor; flex-shrink: 0; display: block; }
   .ic.s18 { width: 18px; height: 18px; }
-  .app { max-width: 640px; margin: 0 auto; padding-bottom: 104px; }
+  .app { max-width: 640px; margin: 0 auto; padding-bottom: 32px; }
   [hidden] { display: none !important; }
 
   /* Top-App-Bar */
@@ -64,7 +64,7 @@
   @keyframes prog { from { left: -40%; } to { left: 100%; } }
   .prog-text { padding: 12px 20px; font-size: 14px; color: var(--var); }
   .errbox { margin: 12px 16px 0; padding: 14px 16px; border-radius: 12px; background: var(--err); color: var(--oerr); font-size: 14px; line-height: 20px; }
-  .snack { position: fixed; left: 50%; transform: translateX(-50%); bottom: 88px; width: calc(100% - 24px); max-width: 560px; background: #303030; color: #f2f2f2; border-radius: 4px; padding: 14px 16px; font-size: 14px; box-shadow: 0 2px 6px rgba(0,0,0,.3); z-index: 30; }
+  .snack { position: fixed; left: 50%; transform: translateX(-50%); bottom: 16px; width: calc(100% - 24px); max-width: 560px; background: #303030; color: #f2f2f2; border-radius: 4px; padding: 14px 16px; font-size: 14px; box-shadow: 0 2px 6px rgba(0,0,0,.3); z-index: 30; }
 
   /* Kind-Abschnitte */
   .sec { margin: 16px 12px 0; }
@@ -112,9 +112,8 @@
   .list > .more:first-child { border-top: 0; }
   .notfound { margin: 20px 16px 0; font-size: 14px; color: var(--var); line-height: 20px; }
 
-  /* FAB */
-  .fab { position: fixed; right: max(16px, calc(50% - 304px)); bottom: 16px; height: 56px; border-radius: 16px; background: var(--sc); color: var(--osc); display: flex; align-items: center; gap: 12px; padding: 0 20px 0 16px; font-size: 16px; font-weight: 500; box-shadow: 0 1px 3px rgba(0,0,0,.3), 0 4px 8px 3px rgba(0,0,0,.15); z-index: 10; cursor: pointer; }
-  .fab.drag, .btnf.drag { outline: 3px solid var(--primary); outline-offset: 3px; }
+  /* Datei-Auswahl (unsichtbares Input, ausgelöst über <label for="fileInput">) */
+  .switch.drag, .btnf.drag { outline: 3px solid var(--primary); outline-offset: 3px; }
   .file-input { display: none; }
 
   /* Erster Start */
@@ -168,13 +167,12 @@
     <button class="ib" id="menuBtn" aria-label="Menü" data-ic="more"></button>
   </header>
   <div class="menu" id="menu" hidden>
-    <label class="mitem" for="fileInput"><span data-ic="file"></span>PDF hinzufügen</label>
+    <label class="mitem" for="fileInput"><span data-ic="file"></span>Wettkampf hinzufügen</label>
     <button type="button" id="menuKids"><span data-ic="person"></span>Kinder verwalten</button>
-    <div class="mver">Schwimmplan · Version 9</div>
+    <div class="mver">Schwimmplan · Version 10</div>
   </div>
   <main id="content"></main>
 </div>
-<label class="fab" id="fab" for="fileInput" hidden><span data-ic="file"></span>PDF hinzufügen</label>
 <input type="file" accept="application/pdf" id="fileInput" class="file-input">
 <div id="overlay"></div>
 <div class="snack" id="snack" hidden></div>
@@ -348,7 +346,7 @@
   }
 
   // ── Upload ──────────────────────────────────────────────────────────────────
-  // Datei-Auswahl über <label for="fileInput"> (FAB, Menü, Auswahlblatt, Startseite);
+  // Datei-Auswahl über <label for="fileInput"> (Menü, Auswahlblatt, Startseite);
   // reinziehen geht auf die ganze Seite.
   const fileInput = document.getElementById('fileInput');
   fileInput.addEventListener('change', e => {
@@ -357,7 +355,7 @@
     e.target.value = '';   // dieselbe Datei erneut auswählbar
   });
 
-  const setDragOver = on => document.querySelectorAll('.fab, .btnf').forEach(el => el.classList.toggle('drag', on));
+  const setDragOver = on => document.querySelectorAll('.switch, .btnf').forEach(el => el.classList.toggle('drag', on));
   document.addEventListener('dragover', e => {
     if (![...e.dataTransfer.types].includes('Files')) return;
     e.preventDefault(); setDragOver(true);
@@ -794,7 +792,6 @@
 
     const content = document.getElementById('content');
     content.innerHTML = html;
-    document.getElementById('fab').hidden = !hasData;
 
     content.querySelectorAll('[data-kid]').forEach(b => b.onclick = () => toggleName(b.dataset.kid));
     content.querySelectorAll('[data-past]').forEach(b => b.onclick = () => {
@@ -830,7 +827,7 @@
       <div class="sheet" role="dialog" aria-label="Wettkampf">
         <div class="handle"></div><h3>Wettkampf</h3>${items}
         <div class="divi"></div>
-        <label class="mi act" for="fileInput">${ic('file')}<div class="x"><div class="a">PDF hinzufügen</div></div></label>
+        <label class="mi act" for="fileInput">${ic('file')}<div class="x"><div class="a">Wettkampf hinzufügen</div><div class="b">Meldeergebnis als PDF</div></div></label>
       </div>`;
     overlay.querySelector('[data-close]').onclick = closeOverlay;
     overlay.querySelectorAll('[data-open]').forEach(el => el.onclick = e => {
