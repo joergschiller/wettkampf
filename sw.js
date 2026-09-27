@@ -1,7 +1,7 @@
 // Service Worker für Offline-Nutzung.
 // App-Shell und PDF.js werden beim Installieren gecacht, Preset-PDFs beim ersten Abruf.
 // Bei neuen Dateien/Änderungen CACHE hochzählen.
-const CACHE = 'schwimmplan-v8';
+const CACHE = 'schwimmplan-v9';
 
 const PRECACHE = [
   './',
