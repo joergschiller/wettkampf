@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Schwimmplan</title>
+<!-- Nicht in Suchmaschinen aufnehmen. Bewusst KEIN robots.txt-Disallow:
+     sonst sieht Google dieses noindex nie und kann die URL trotzdem listen. -->
+<meta name="robots" content="noindex, nofollow">
 <meta name="theme-color" content="#f8fafd">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -110,6 +113,8 @@
   .more { display: flex; align-items: center; justify-content: space-between; width: 100%; padding: 0 16px; height: 48px; font-size: 14px; font-weight: 500; color: var(--primary); border-top: 1px solid var(--line); }
   .more .ic.up { transform: rotate(180deg); }
   .list > .more:first-child { border-top: 0; }
+  .foot { margin: 40px 16px 0; text-align: center; font-size: 12px; line-height: 18px; color: var(--var); }
+  .foot a { color: inherit; }
   .notfound { margin: 20px 16px 0; font-size: 14px; color: var(--var); line-height: 20px; }
 
   /* Datei-Auswahl (unsichtbares Input, ausgelöst über <label for="fileInput">) */
@@ -169,9 +174,10 @@
   <div class="menu" id="menu" hidden>
     <label class="mitem" for="fileInput"><span data-ic="file"></span>Wettkampf hinzufügen</label>
     <button type="button" id="menuKids"><span data-ic="person"></span>Kinder verwalten</button>
-    <div class="mver">Schwimmplan · Version 10</div>
+    <div class="mver">Schwimmplan · Version 11</div>
   </div>
   <main id="content"></main>
+  <footer class="foot">(Private Website · Nur private Nutzung · Kontakt: <a href="mailto:joerg@schiller.guru">joerg@schiller.guru</a>)</footer>
 </div>
 <input type="file" accept="application/pdf" id="fileInput" class="file-input">
 <div id="overlay"></div>
