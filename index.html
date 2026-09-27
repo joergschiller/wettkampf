@@ -180,7 +180,7 @@
     <button type="button" id="menuInstall" hidden><span data-ic="install"></span>App installieren</button>
     <label class="mitem" for="fileInput"><span data-ic="file"></span>Wettkampf hinzufügen</label>
     <button type="button" id="menuKids"><span data-ic="person"></span>Kinder verwalten</button>
-    <div class="mver">Schwimmplan · Version 13</div>
+    <div class="mver">Schwimmplan · Version 14</div>
   </div>
   <main id="content"></main>
   <footer class="foot">(Private Website · Nur private Nutzung · Kontakt: <a href="mailto:joerg@schiller.guru">joerg@schiller.guru</a>)</footer>
@@ -591,8 +591,12 @@
   }
 
   // ── Kinder ──────────────────────────────────────────────────────────────────
+  // Gespeichert werden alle Kinder und die per Chip ausgeblendeten (neue Kinder sind so immer an)
   function saveNames() {
-    try { localStorage.setItem('schwimmplan_names', JSON.stringify(names)); } catch (e) {}
+    try {
+      localStorage.setItem('schwimmplan_names', JSON.stringify(names));
+      localStorage.setItem('schwimmplan_hidden', JSON.stringify(names.filter(n => !activeNames.has(n))));
+    } catch (e) {}
   }
 
   function nameMatches(query, swimmerName) {
@@ -618,6 +622,7 @@
 
   function toggleName(n) {
     activeNames.has(n) ? activeNames.delete(n) : activeNames.add(n);
+    saveNames();
     render();
   }
 
@@ -947,7 +952,9 @@
     names = JSON.parse(localStorage.getItem('schwimmplan_names') || '[]');
     if (!Array.isArray(names)) names = [];
   } catch (e) { names = []; }
-  activeNames = new Set(names);
+  let hidden = [];
+  try { hidden = JSON.parse(localStorage.getItem('schwimmplan_hidden') || '[]'); } catch (e) {}
+  activeNames = new Set(names.filter(n => !(Array.isArray(hidden) && hidden.includes(n))));
   render();
 
   // Zuletzt geöffneten Wettkampf wiederherstellen (sonst den neuesten)
