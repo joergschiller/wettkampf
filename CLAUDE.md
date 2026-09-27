@@ -54,6 +54,9 @@ Startseite mit „PDF auswählen“. UI wird komplett über `render()` aus dem Z
 - Countdown-Karte pro Kind (blau „Nächster Start“, gelb „Gleich dran“ ab `SOON_MIN` = 30 Min,
   grün „Jetzt dran“ bis `NOW_MIN` = 10 Min nach der ca.-Zeit, „Alle Starts geschafft“ am Ende);
   vergangene Starts eingeklappt („N Starts vorbei“). Aktualisiert alle 30 s und beim Zurückkehren in die App (visibilitychange/focus).
+- Menüeintrag „App installieren“: nutzt `beforeinstallprompt` (Chrome/Edge/Samsung), auf iPhone/iPad
+  Dialog mit Anleitung (Teilen → Zum Home-Bildschirm); ausgeblendet in der installierten App.
+  Einmalige Install-Karte wurde bewusst (noch) nicht umgesetzt.
 - PWA: Service Worker cacht App, PDF.js und geöffnete Preset-PDFs (beim Ändern von Dateien `CACHE` in `sw.js` hochzählen)
 
 ## Deployment

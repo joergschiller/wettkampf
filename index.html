@@ -162,6 +162,7 @@
   .acts { display: flex; justify-content: flex-end; gap: 8px; margin-top: 22px; }
   .tb { height: 40px; padding: 0 12px; display: flex; align-items: center; font-size: 14px; font-weight: 500; color: var(--primary); border-radius: 20px; }
   .tb.f { background: var(--primary); color: var(--on-primary); padding: 0 24px; }
+  .inl { display: inline-block; vertical-align: -3px; }
   .tb:disabled { opacity: 0.38; cursor: default; }
 </style>
 </head>
@@ -172,9 +173,10 @@
     <button class="ib" id="menuBtn" aria-label="Menü" data-ic="more"></button>
   </header>
   <div class="menu" id="menu" hidden>
+    <button type="button" id="menuInstall" hidden><span data-ic="install"></span>App installieren</button>
     <label class="mitem" for="fileInput"><span data-ic="file"></span>Wettkampf hinzufügen</label>
     <button type="button" id="menuKids"><span data-ic="person"></span>Kinder verwalten</button>
-    <div class="mver">Schwimmplan · Version 11</div>
+    <div class="mver">Schwimmplan · Version 12</div>
   </div>
   <main id="content"></main>
   <footer class="foot">(Private Website · Nur private Nutzung · Kontakt: <a href="mailto:joerg@schiller.guru">joerg@schiller.guru</a>)</footer>
@@ -195,6 +197,8 @@
 
   // Material-Icons (Pfade aus material.io), inline damit sie offline funktionieren
   const ICONS = {
+    install:'M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z',
+    share:  'M16 5l-1.42 1.42-1.59-1.59V16h-1.98V4.83L9.42 6.42 8 5l4-4 4 4zm4 5v11c0 1.1-.9 2-2 2H6c-1.11 0-2-.9-2-2V10c0-1.11.89-2 2-2h3v2H6v11h12V10h-3V8h3c1.1 0 2 .89 2 2z',
     check:  'M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z',
     add:    'M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z',
     more:   'M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z',
@@ -878,6 +882,51 @@
     overlay.querySelectorAll('[data-rm]').forEach(b => b.onclick = () => { removeName(b.dataset.rm); openKidDialog(); });
     input.focus();
   }
+
+  // ── App installieren ────────────────────────────────────────────────────────
+  // Chrome/Edge/Samsung melden über `beforeinstallprompt`, dass die Seite installierbar ist;
+  // das Ereignis wird aufgehoben und beim Tipp auf „App installieren“ ausgelöst.
+  // Safari (iPhone/iPad) kennt das nicht – dort zeigt der Menüeintrag eine Anleitung.
+  // In der installierten App (standalone) erscheint der Eintrag nicht.
+  let installPrompt = null;
+  const isStandalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+  const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) ||
+                (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const menuInstall = document.getElementById('menuInstall');
+
+  function updateInstallItem() {
+    menuInstall.hidden = isStandalone() || !(installPrompt || isIOS);
+  }
+
+  window.addEventListener('beforeinstallprompt', e => { installPrompt = e; updateInstallItem(); });
+  window.addEventListener('appinstalled', () => { installPrompt = null; updateInstallItem(); showSnack('App installiert'); });
+
+  menuInstall.onclick = async () => {
+    closeMenu();
+    if (installPrompt) {
+      const p = installPrompt;
+      installPrompt = null;
+      p.prompt();
+      try { await p.userChoice; } catch (e) {}
+      updateInstallItem();
+    } else if (isIOS) {
+      openIOSInstallDialog();
+    }
+  };
+
+  function openIOSInstallDialog() {
+    overlay.innerHTML = `<div class="scrim" data-close></div>
+      <div class="dlg" role="dialog" aria-label="Als App installieren">
+        <div class="hic">${ic('install')}</div>
+        <h3>Als App installieren</h3>
+        <p>Tippe in Safari unten auf <span class="inl">${ic('share', 's18')}</span> <b>Teilen</b> und dann auf
+          <b>„Zum Home-Bildschirm“</b>. Danach startet Schwimmplan wie eine App – auch offline.</p>
+        <div class="acts"><button class="tb f" data-close>Verstanden</button></div>
+      </div>`;
+    overlay.querySelectorAll('[data-close]').forEach(el => el.onclick = closeOverlay);
+  }
+
+  updateInstallItem();
 
   let snackTimer = null;
   function showSnack(msg) {
