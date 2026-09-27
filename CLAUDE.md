@@ -13,9 +13,9 @@ Wird als statische Seite auf GitHub Pages gehostet.
 ## PDF-Parser
 PDF.js extrahiert den Rohtext. Danach Regex-Parser für drei EasyWk-Formate:
 
-- **Format A** – `Bahn 3 Torenius Schiller (M) 2016 SC Poseidon Berlin 00:57,66`
-- **Format B** – `Bahn 1 Schiller, Torenius 2016 SC Poseidon Berlin 00:48,30`
-- **Format C** – `Bahn 3 Yannick Schroeter 2003 | S10 SV Berolina 3,5,H,12+ 02:47,07`
+- **Format A** – `Bahn 3 Max Mustermann (M) 2016 SC Beispielstadt 00:57,66`
+- **Format B** – `Bahn 1 Mustermann, Max 2016 SC Beispielstadt 00:48,30`
+- **Format C** – `Bahn 3 Erika Musterfrau 2003 | S10 SV Musterhausen 3,5,H,12+ 02:47,07`
 
 Parser erkennt außerdem:
 - `Wettkampf N - Disziplin` → aktueller Wettkampf
@@ -44,6 +44,7 @@ Startseite mit „PDF auswählen“. UI wird komplett über `render()` aus dem Z
 - Gespeicherte Wettkämpfe (Presets) per fetch() aus dem gleichen Verzeichnis – derzeit leer.
   Meldeergebnis-PDFs enthalten personenbezogene Daten (Namen, Jahrgänge) und sollen **nicht** ins
   Repo; zum Testen lokal ablegen (`*.pdf` steht in `.gitignore`).
+  Auch in Code-Kommentaren, Doku, Commits und PRs keine echten Namen verwenden (Beispiele: Max Mustermann).
 - Eigene PDF hochladen (Drag & Drop auf die ganze Seite oder Dateiauswahl über Menü, Auswahlblatt, Startseite).
   Hochgeladene PDFs werden lokal im Browser
   gespeichert (IndexedDB `schwimmplan`, Store `competitions`: PDF + Parse-Ergebnis) und erscheinen unter

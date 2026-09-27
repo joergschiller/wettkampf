@@ -462,9 +462,9 @@
         continue;
       }
 
-      // Format A: "Bahn 3 Torenius Schiller (M) 2016 SC Poseidon Berlin 00:57,66"
-      // Format B: "Bahn 1   Schiller, Torenius   2016   SC Poseidon Berlin   00:48,30"
-      // Format C: "Bahn 3   Yannick Schroeter   2003 | S10   SV Berolina   3,5,H,12+   02:47,07"
+      // Format A: "Bahn 3 Max Mustermann (M) 2016 SC Beispielstadt 00:57,66"
+      // Format B: "Bahn 1   Mustermann, Max   2016   SC Beispielstadt   00:48,30"
+      // Format C: "Bahn 3   Erika Musterfrau   2003 | S10   SV Musterhausen   3,5,H,12+   02:47,07"
       const bahnA = line.match(/^Bahn\s+(\d+)\s+(.+?)\s+\((W|M)\)\s+(\d{4})\s+(.+?)\s+(\d{2}:\d{2},\d{2})$/);
       const bahnB = !bahnA && line.match(/^Bahn\s+(\d+)\s+([A-ZÀ-ÿa-z][^,]+,[^\d]+?)\s+(\d{4})\s+(.+?)\s+(\d{2}:\d{2},\d{2})$/);
       const bahnC = !bahnA && !bahnB && line.match(/^Bahn\s+(\d+)\s+(.+?)\s+(\d{4})(?:\s*\|\s*\S+)?\s+(.+?)\s+(\d{2}:\d{2},\d{2})$/);
