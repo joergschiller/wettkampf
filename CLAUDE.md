@@ -44,6 +44,7 @@ Startseite mit „PDF auswählen“. UI wird komplett über `render()` aus dem Z
 - Gespeicherte Wettkämpfe (Presets) per fetch() aus dem gleichen Verzeichnis – derzeit leer.
   Meldeergebnis-PDFs enthalten personenbezogene Daten (Namen, Jahrgänge) und sollen **nicht** ins
   Repo; zum Testen lokal ablegen (`*.pdf` steht in `.gitignore`).
+  Auch in Code-Kommentaren, Doku, Commits und PRs keine echten Namen verwenden (Beispiele: Max Mustermann).
 - Eigene PDF hochladen (Drag & Drop auf die ganze Seite oder Dateiauswahl über Menü, Auswahlblatt, Startseite).
   Hochgeladene PDFs werden lokal im Browser
   gespeichert (IndexedDB `schwimmplan`, Store `competitions`: PDF + Parse-Ergebnis) und erscheinen unter
