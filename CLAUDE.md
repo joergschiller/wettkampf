@@ -39,7 +39,8 @@ Wettkampf-Auswahlblatt (bewusst kein schwebender Knopf). Ohne gespeicherten Wett
 Startseite mit „PDF auswählen“. UI wird komplett über `render()` aus dem Zustand neu gezeichnet.
 
 ## Features
-- Namen der Kinder per Chip-UI, gespeichert in localStorage
+- Namen der Kinder per Chip-UI, gespeichert in localStorage (`schwimmplan_names`); per Chip ausgeblendete
+  Kinder bleiben nach dem Neuladen ausgeblendet (`schwimmplan_hidden`)
 - Gespeicherte Wettkämpfe (Presets) per fetch() aus dem gleichen Verzeichnis – derzeit leer.
   Meldeergebnis-PDFs enthalten personenbezogene Daten (Namen, Jahrgänge) und sollen **nicht** ins
   Repo; zum Testen lokal ablegen (`*.pdf` steht in `.gitignore`).
