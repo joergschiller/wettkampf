@@ -2,290 +2,212 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Schwimmplan</title>
-<meta name="theme-color" content="#05203a">
+<meta name="theme-color" content="#f8fafd">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
+  /* Material Design 3, helles Schema (Farben wie in den Google-Apps) */
+  :root {
+    --surface: #f8fafd; --card: #fff; --sheet: #f0f4f9;
+    --on: #1f1f1f; --var: #444746; --outline: #c4c7c5; --line: #e1e3e1;
+    --primary: #0b57d0; --on-primary: #fff; --pc: #d3e3fd; --opc: #041e49;
+    --sc: #c2e7ff; --osc: #001d35;
+    --warn: #ffdf99; --owarn: #3d2e00; --warnacc: #7c5800;
+    --ok: #c4eed0; --ook: #072711;
+    --err: #f9dedc; --oerr: #410e0b;
+    --chip: #e9eef6;
+  }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-
+  html { -webkit-text-size-adjust: 100%; }
   body {
-    min-height: 100vh;
-    background: linear-gradient(160deg, #05203a 0%, #071f35 60%, #05203a 100%);
-    color: #fff;
-    font-family: 'DM Mono', 'Courier New', monospace;
-    padding: 0 16px 80px;
+    min-height: 100vh; background: var(--surface); color: var(--on);
+    font-family: Roboto, system-ui, -apple-system, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    font-variant-numeric: tabular-nums; -webkit-font-smoothing: antialiased;
+    -webkit-tap-highlight-color: transparent;
   }
+  button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+  .ic { width: 24px; height: 24px; fill: currentColor; flex-shrink: 0; display: block; }
+  .ic.s18 { width: 18px; height: 18px; }
+  .app { max-width: 640px; margin: 0 auto; padding-bottom: 104px; }
+  [hidden] { display: none !important; }
 
-  header {
-    text-align: center;
-    padding: 36px 0 24px;
-  }
-  .logo { font-size: 1.9rem; font-weight: 700; letter-spacing: -0.02em; line-height: 1; }
-  .logo span { color: #00c8ff; }
-  .tagline { font-size: 0.65rem; color: rgba(255,255,255,0.35); letter-spacing: 0.15em; text-transform: uppercase; margin-top: 6px; }
+  /* Top-App-Bar */
+  .bar { display: flex; align-items: center; height: 64px; padding: 0 4px 0 16px; position: sticky; top: 0; background: var(--surface); z-index: 5; }
+  .bar h1 { font-size: 22px; font-weight: 400; flex: 1; }
+  .ib { width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--var); }
+  .ib:active, .ib:hover { background: rgba(68,71,70,0.08); }
+  .menu { position: absolute; right: 8px; top: 56px; background: var(--sheet); border-radius: 4px; padding: 8px 0; min-width: 220px; box-shadow: 0 2px 6px 2px rgba(0,0,0,.15), 0 1px 2px rgba(0,0,0,.3); z-index: 20; }
+  .menu button, .menu .mitem, .menu .mver { display: flex; align-items: center; gap: 12px; width: 100%; height: 48px; padding: 0 12px; font-size: 14px; text-align: left; color: var(--on); }
+  .menu button .ic, .menu .mitem .ic { color: var(--var); }
+  .menu button:hover, .menu .mitem:hover { background: rgba(31,31,31,0.08); }
+  .menu .mitem { cursor: pointer; }
+  .menu .mver { color: var(--var); font-size: 12px; height: 36px; }
 
-  .upload-zone {
-    border: 1.5px dashed rgba(0,200,255,0.3);
-    border-radius: 16px;
-    padding: 28px 20px;
-    text-align: center;
-    cursor: pointer;
-    background: rgba(0,200,255,0.03);
-    margin-bottom: 20px;
-    transition: all 0.2s;
-    position: relative;
-  }
-  .upload-zone:hover, .upload-zone.drag-over {
-    border-color: #00c8ff;
-    background: rgba(0,200,255,0.08);
-  }
-  .upload-zone input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
-  .upload-icon { font-size: 2rem; margin-bottom: 8px; }
-  .upload-label { font-size: 0.85rem; color: rgba(255,255,255,0.6); }
-  .upload-label strong { color: #00c8ff; }
+  /* Wettkampf-Auswahl + Filter-Chips */
+  .switch { display: inline-flex; align-items: center; gap: 4px; margin: 0 16px 12px; padding: 6px 8px 6px 14px; min-height: 36px; border-radius: 8px; background: var(--chip); font-size: 14px; font-weight: 500; max-width: calc(100% - 32px); text-align: left; }
+  .switch span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .switch .ic { color: var(--var); }
+  .chips { display: flex; gap: 8px; padding: 0 16px 4px; flex-wrap: wrap; }
+  .fc { height: 32px; display: inline-flex; align-items: center; gap: 6px; padding: 0 16px; border-radius: 8px; font-size: 14px; font-weight: 500; border: 1px solid var(--outline); color: var(--var); }
+  .fc.on { background: var(--sc); color: var(--osc); border-color: transparent; padding-left: 8px; }
+  .fc.add { padding-left: 8px; }
 
-  .error-box {
-    background: rgba(255,80,80,0.1);
-    border: 1px solid rgba(255,80,80,0.3);
-    border-radius: 10px;
-    padding: 12px 16px;
-    font-size: 0.78rem;
-    color: #ff8080;
-    margin-bottom: 16px;
-    display: none;
-  }
+  /* Fortschritt, Fehler, Snackbar */
+  .prog { height: 4px; background: var(--pc); margin: 12px 16px 0; border-radius: 2px; overflow: hidden; position: relative; }
+  .prog i { position: absolute; top: 0; bottom: 0; width: 40%; background: var(--primary); border-radius: 2px; animation: prog 1.4s ease-in-out infinite; }
+  @keyframes prog { from { left: -40%; } to { left: 100%; } }
+  .prog-text { padding: 12px 20px; font-size: 14px; color: var(--var); }
+  .errbox { margin: 12px 16px 0; padding: 14px 16px; border-radius: 12px; background: var(--err); color: var(--oerr); font-size: 14px; line-height: 20px; }
+  .snack { position: fixed; left: 50%; transform: translateX(-50%); bottom: 88px; width: calc(100% - 24px); max-width: 560px; background: #303030; color: #f2f2f2; border-radius: 4px; padding: 14px 16px; font-size: 14px; box-shadow: 0 2px 6px rgba(0,0,0,.3); z-index: 30; }
 
-  .section-label { font-size: 0.65rem; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(255,255,255,0.4); margin-bottom: 10px; }
+  /* Kind-Abschnitte */
+  .sec { margin: 16px 12px 0; }
+  .sh { display: flex; align-items: center; gap: 12px; padding: 6px 4px 10px; }
+  .av { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 500; flex-shrink: 0; }
+  .av0 { background: #d3e3fd; color: #041e49; } .av1 { background: #ffd8e4; color: #31111d; }
+  .av2 { background: #c4eed0; color: #072711; } .av3 { background: #ffdcc2; color: #2e1500; }
+  .sh .n { font-size: 16px; font-weight: 500; } .sh .s { font-size: 14px; color: var(--var); }
 
-  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
-  .chip {
-    background: rgba(255,209,102,0.15);
-    border: 1px solid rgba(255,209,102,0.4);
-    color: #ffd166;
-    border-radius: 20px;
-    padding: 5px 12px;
-    font-size: 0.78rem;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    cursor: pointer;
-    transition: all 0.15s;
-    font-family: inherit;
-  }
-  .chip.off { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.15); color: rgba(255,255,255,0.4); }
-  .chip-x { font-size: 0.7rem; opacity: 0.6; }
+  /* Countdown-Karte */
+  .hero { border-radius: 24px; padding: 16px 16px 14px; margin-bottom: 8px; background: var(--pc); color: var(--opc); }
+  .hero.soon { background: var(--warn); color: var(--owarn); }
+  .hero.now  { background: var(--ok);   color: var(--ook); }
+  .hero.done { background: var(--card); color: var(--var); border: 1px solid var(--line); }
+  .hero .lab { display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 500; }
+  .hero .cd { font-size: 45px; line-height: 52px; margin: 6px 0 2px; letter-spacing: -0.5px; }
+  .hero .cd small { font-size: 22px; margin: 0 8px 0 4px; letter-spacing: 0; }
+  .hero .row { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; }
+  .hero .ev { font-size: 16px; font-weight: 500; }
+  .hero .su { font-size: 14px; opacity: 0.85; }
+  .hero .fin { font-size: 13px; margin-top: 6px; display: flex; gap: 4px; align-items: center; }
+  .hero .ln { text-align: center; min-width: 56px; border-radius: 16px; padding: 6px 8px; background: rgba(255,255,255,0.55); flex-shrink: 0; }
+  .hero .ln b { display: block; font-size: 28px; font-weight: 500; line-height: 32px; }
+  .hero .ln span { font-size: 12px; }
+  .hero.done .sub2 { font-size: 14px; margin-top: 6px; }
+  .tag { font-size: 12px; font-weight: 500; padding: 1px 8px; border-radius: 6px; border: 1px solid currentColor; opacity: 0.8; margin-left: 6px; vertical-align: 1px; white-space: nowrap; }
 
-  .add-row { display: flex; gap: 8px; }
-  .add-row input {
-    flex: 1;
-    background: rgba(255,255,255,0.06);
-    border: 1px solid rgba(255,255,255,0.15);
-    border-radius: 8px;
-    padding: 8px 12px;
-    color: #fff;
-    font-family: inherit;
-    font-size: 0.8rem;
-    outline: none;
-  }
-  .add-row input:focus { border-color: #00c8ff; }
-  .add-row input::placeholder { color: rgba(255,255,255,0.25); }
-  .btn-add {
-    background: #00c8ff;
-    color: #05203a;
-    border: none;
-    border-radius: 8px;
-    padding: 8px 16px;
-    font-family: inherit;
-    font-size: 0.8rem;
-    font-weight: 500;
-    cursor: pointer;
-  }
+  /* Liste */
+  .list { background: var(--card); border-radius: 24px; overflow: hidden; }
+  .li { display: grid; grid-template-columns: 56px 1fr auto; gap: 12px; align-items: center; padding: 12px 16px; min-height: 72px; }
+  .li + .li { border-top: 1px solid var(--line); }
+  .li .tm { font-size: 16px; font-weight: 500; }
+  .li .hl { font-size: 16px; }
+  .li .su { font-size: 14px; color: var(--var); }
+  .li .fn { font-size: 13px; color: var(--warnacc); margin-top: 2px; }
+  .li .ln { min-width: 48px; height: 48px; border-radius: 12px; background: var(--chip); display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .li .ln b { font-size: 20px; font-weight: 500; line-height: 22px; }
+  .li .ln span { font-size: 11px; color: var(--var); }
+  .li.past { opacity: 0.55; }
+  .li.past .ln { background: transparent; color: var(--var); }
+  .day { font-size: 14px; font-weight: 500; color: var(--primary); padding: 14px 16px 2px; }
+  .day + .li { border-top: 0; }
+  .more { display: flex; align-items: center; justify-content: space-between; width: 100%; padding: 0 16px; height: 48px; font-size: 14px; font-weight: 500; color: var(--primary); border-top: 1px solid var(--line); }
+  .more .ic.up { transform: rotate(180deg); }
+  .list > .more:first-child { border-top: 0; }
+  .notfound { margin: 20px 16px 0; font-size: 14px; color: var(--var); line-height: 20px; }
 
-  .loading { text-align: center; padding: 40px; color: #00c8ff; font-size: 0.8rem; letter-spacing: 0.08em; display: none; }
+  /* FAB */
+  .fab { position: fixed; right: max(16px, calc(50% - 304px)); bottom: 16px; height: 56px; border-radius: 16px; background: var(--sc); color: var(--osc); display: flex; align-items: center; gap: 12px; padding: 0 20px 0 16px; font-size: 16px; font-weight: 500; box-shadow: 0 1px 3px rgba(0,0,0,.3), 0 4px 8px 3px rgba(0,0,0,.15); z-index: 10; cursor: pointer; }
+  .fab.drag, .btnf.drag { outline: 3px solid var(--primary); outline-offset: 3px; }
+  .file-input { display: none; }
 
-  .info-bar {
-    background: rgba(0,200,255,0.08);
-    border: 1px solid rgba(0,200,255,0.15);
-    border-radius: 10px;
-    padding: 10px 14px;
-    font-size: 0.72rem;
-    color: rgba(255,255,255,0.5);
-    margin-bottom: 20px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 12px;
-  }
-  .info-bar .comp-name { color: #fff; font-weight: 500; }
-  .info-bar span:last-child { text-align: right; flex-shrink: 0; }
+  /* Erster Start */
+  .empty { text-align: center; padding: 40px 32px 0; }
+  .empty .big { width: 96px; height: 96px; border-radius: 50%; background: var(--pc); color: var(--primary); display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; }
+  .empty .big .ic { width: 48px; height: 48px; }
+  .empty h2 { font-size: 22px; font-weight: 400; margin-bottom: 8px; }
+  .empty p { font-size: 14px; color: var(--var); line-height: 20px; margin-bottom: 24px; }
+  .btnf { display: inline-flex; align-items: center; gap: 8px; height: 48px; padding: 0 24px 0 16px; border-radius: 24px; background: var(--primary); color: var(--on-primary); font-size: 15px; font-weight: 500; cursor: pointer; }
+  .hint { font-size: 12px; color: var(--var); margin-top: 14px; }
+  .steps { text-align: left; background: var(--card); border-radius: 24px; margin: 36px 0 0; padding: 6px 0; }
+  .st { display: flex; gap: 14px; align-items: center; padding: 10px 16px; font-size: 14px; color: var(--var); }
+  .st b { width: 28px; height: 28px; border-radius: 50%; background: var(--chip); display: flex; align-items: center; justify-content: center; font-size: 13px; color: var(--on); font-weight: 500; flex-shrink: 0; }
 
-  .results-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 16px; }
-  .results-title { font-size: 1.05rem; font-style: italic; color: rgba(255,255,255,0.7); }
-  .results-count { font-size: 0.7rem; color: #00c8ff; }
-
-  .swimmer-block { margin-bottom: 24px; }
-  .swimmer-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; padding: 0 4px; }
-  .avatar {
-    width: 32px; height: 32px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #00c8ff, #0077b6);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 0.75rem; font-weight: 500; color: #05203a;
-    flex-shrink: 0;
-  }
-  .swimmer-name { font-size: 1.05rem; font-weight: 700; }
-  .swimmer-sub { font-size: 0.68rem; color: rgba(255,255,255,0.35); letter-spacing: 0.08em; }
-
-  .start-card {
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 12px;
-    padding: 14px 16px;
-    margin-bottom: 8px;
-    display: grid;
-    grid-template-columns: 64px 1fr auto;
-    gap: 12px;
-    align-items: center;
-    position: relative;
-    overflow: hidden;
-  }
-  .lane-bar { position: absolute; left: 0; top: 0; bottom: 0; width: 3px; }
-  .start-time { font-size: 0.82rem; color: #00c8ff; }
-  .start-time small { display: block; font-size: 0.58rem; color: rgba(255,255,255,0.3); letter-spacing: 0.08em; }
-  .start-event { font-size: 0.82rem; font-weight: 500; }
-  .start-meta { font-size: 0.68rem; color: rgba(255,255,255,0.4); margin-top: 2px; letter-spacing: 0.05em; }
-  .lane-num { font-size: 1.5rem; font-weight: 700; line-height: 1; text-align: right; }
-  .lane-label { font-size: 0.55rem; color: rgba(255,255,255,0.3); letter-spacing: 0.1em; text-transform: uppercase; text-align: right; }
-
-  .divider { height: 1px; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent); margin: 4px 0 20px; }
-  .day-label { font-size: 0.65rem; letter-spacing: 0.12em; text-transform: uppercase; color: #00c8ff; margin: 16px 0 8px 4px; padding: 4px 10px; background: rgba(0,200,255,0.08); border-radius: 20px; display: inline-block; }
-
-  .round-badge { font-size: 0.58rem; font-weight: 400; letter-spacing: 0.08em; text-transform: uppercase; color: #ffd166; border: 1px solid rgba(255,209,102,0.4); border-radius: 10px; padding: 1px 6px; margin-left: 4px; vertical-align: middle; white-space: nowrap; }
-  .follow-up { font-size: 0.64rem; color: rgba(255,209,102,0.75); margin-top: 4px; }
-
-  /* Countdown / nächster Start */
-  .next-wrap { margin-bottom: 8px; }
-  .next-label { display: flex; justify-content: space-between; align-items: center; font-size: 0.6rem; letter-spacing: 0.14em; text-transform: uppercase; color: #00c8ff; margin: 6px 4px 6px; }
-  .pulse { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: currentColor; margin-right: 6px; box-shadow: 0 0 0 4px rgba(0,200,255,0.18); animation: pulse 2s ease-in-out infinite; }
-  @keyframes pulse { 50% { opacity: 0.35; } }
-  .start-card.next { margin-bottom: 0; background: linear-gradient(135deg, rgba(0,200,255,0.16), rgba(0,200,255,0.05)); border-color: rgba(0,200,255,0.6); box-shadow: 0 0 24px rgba(0,200,255,0.18); }
-  .countdown { grid-column: 1 / -1; display: flex; align-items: baseline; gap: 6px; margin-top: 2px; padding-top: 10px; border-top: 1px solid rgba(0,200,255,0.2); }
-  .cd-in { font-size: 0.66rem; color: rgba(255,255,255,0.5); letter-spacing: 0.08em; text-transform: uppercase; }
-  .cd-num, .cd-now { font-size: 1.5rem; font-weight: 700; color: #fff; line-height: 1; }
-  .cd-unit { font-size: 0.72rem; color: rgba(255,255,255,0.6); margin-right: 6px; }
-  .next-wrap.soon .next-label { color: #ffd166; }
-  .next-wrap.soon .pulse { box-shadow: 0 0 0 4px rgba(255,209,102,0.2); }
-  .start-card.next.soon { background: linear-gradient(135deg, rgba(255,209,102,0.18), rgba(255,209,102,0.05)); border-color: rgba(255,209,102,0.7); box-shadow: 0 0 24px rgba(255,209,102,0.2); }
-  .start-card.soon .countdown { border-top-color: rgba(255,209,102,0.3); }
-  .next-wrap.now .next-label { color: #06d6a0; }
-  .next-wrap.now .pulse { box-shadow: 0 0 0 4px rgba(6,214,160,0.22); }
-  .start-card.next.now { background: linear-gradient(135deg, rgba(6,214,160,0.2), rgba(6,214,160,0.06)); border-color: rgba(6,214,160,0.75); box-shadow: 0 0 24px rgba(6,214,160,0.22); }
-  .start-card.now .countdown { border-top-color: rgba(6,214,160,0.3); }
-  .start-card.past { opacity: 0.38; }
-  .past-tag { font-size: 0.55rem; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(255,255,255,0.6); text-align: right; white-space: nowrap; }
-
-  .empty-state { text-align: center; padding: 40px 20px; color: rgba(255,255,255,0.25); font-size: 0.8rem; line-height: 1.8; }
-  .empty-icon { font-size: 2.5rem; display: block; margin-bottom: 12px; }
-
-  #results { margin-top: 4px; }
-
-  .presets-section { margin-bottom: 20px; }
-  .preset-btn {
-    display: flex; align-items: center; justify-content: space-between;
-    width: 100%; background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.1); border-radius: 10px;
-    padding: 12px 16px; margin-bottom: 8px; cursor: pointer;
-    font-family: inherit; color: #fff; text-align: left;
-    transition: background 0.15s;
-  }
-  .preset-btn:hover { background: rgba(0,200,255,0.08); border-color: rgba(0,200,255,0.3); }
-  .preset-btn.active { background: rgba(0,200,255,0.12); border-color: rgba(0,200,255,0.5); }
-  .preset-name { font-size: 0.82rem; font-weight: 500; }
-  .preset-date { font-size: 0.68rem; color: rgba(255,255,255,0.4); margin-top: 3px; }
-  .preset-row { display: flex; gap: 8px; align-items: stretch; margin-bottom: 8px; }
-  .preset-row .preset-btn { margin-bottom: 0; flex: 1; min-width: 0; }
-  .preset-del {
-    flex-shrink: 0; width: 44px; border-radius: 10px; cursor: pointer; font-family: inherit;
-    background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1);
-    color: rgba(255,255,255,0.4); font-size: 0.8rem;
-  }
-  .preset-del:hover { color: #ff8080; border-color: rgba(255,80,80,0.4); background: rgba(255,80,80,0.08); }
-  .add-btn {
-    position: relative; display: flex; align-items: center; justify-content: center; gap: 8px;
-    width: 100%; min-height: 48px; border: 1.5px dashed rgba(0,200,255,0.35); border-radius: 10px;
-    color: #00c8ff; font-size: 0.8rem; cursor: pointer; transition: all 0.15s;
-  }
-  .add-btn:hover, .add-btn.drag-over { border-color: #00c8ff; background: rgba(0,200,255,0.08); }
-  .add-btn input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
-  .add-sub { color: rgba(255,255,255,0.35); font-size: 0.66rem; }
-  .preset-arrow { color: #00c8ff; font-size: 0.9rem; flex-shrink: 0; margin-left: 12px; }
+  /* Bottom-Sheet und Dialog */
+  .scrim { position: fixed; inset: 0; background: rgba(0,0,0,0.32); z-index: 40; }
+  .sheet { position: fixed; left: 0; right: 0; bottom: 0; max-width: 640px; margin: 0 auto; background: var(--sheet); border-radius: 28px 28px 0 0; padding: 8px 0 calc(20px + env(safe-area-inset-bottom)); z-index: 41; max-height: 80vh; overflow-y: auto; }
+  .handle { width: 32px; height: 4px; border-radius: 2px; background: #747775; margin: 14px auto 18px; }
+  .sheet h3 { font-size: 16px; font-weight: 500; padding: 0 24px 8px; }
+  .mi { display: flex; align-items: center; gap: 16px; padding: 0 12px 0 24px; min-height: 64px; width: 100%; text-align: left; }
+  .mi .x { flex: 1; min-width: 0; }
+  .mi .a { font-size: 16px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .mi .b { font-size: 14px; color: var(--var); }
+  .mi > .ic { color: var(--var); }
+  .mi.sel { background: var(--sc); color: var(--osc); margin: 0 12px; border-radius: 32px; padding-left: 12px; width: calc(100% - 24px); }
+  .mi.sel > .ic, .mi.sel .b { color: var(--osc); }
+  .mi.act { color: var(--primary); cursor: pointer; } .mi.act > .ic { color: var(--primary); }
+  .divi { height: 1px; background: var(--outline); margin: 8px 24px; opacity: 0.6; }
+  .dlg { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); width: calc(100% - 48px); max-width: 400px; background: var(--sheet); border-radius: 28px; padding: 24px; z-index: 41; }
+  .dlg .hic { color: var(--primary); display: flex; justify-content: center; margin-bottom: 14px; }
+  .dlg h3 { font-size: 24px; font-weight: 400; text-align: center; margin-bottom: 14px; }
+  .dlg p { font-size: 14px; color: var(--var); line-height: 20px; margin-bottom: 18px; }
+  .tf { position: relative; }
+  .tf input { width: 100%; height: 56px; border: 1px solid var(--outline); border-radius: 4px; padding: 0 16px; font: inherit; font-size: 16px; color: var(--on); background: transparent; outline: none; }
+  .tf input:focus { border: 2px solid var(--primary); padding: 0 15px; }
+  .tf label { position: absolute; top: -9px; left: 12px; background: var(--sheet); padding: 0 4px; font-size: 12px; color: var(--var); }
+  .tf input:focus + label { color: var(--primary); }
+  .help { font-size: 12px; color: var(--var); padding: 4px 16px 0; min-height: 20px; }
+  .kidrow { display: flex; align-items: center; gap: 12px; padding: 4px 0; font-size: 16px; }
+  .kidrow span { flex: 1; }
+  .acts { display: flex; justify-content: flex-end; gap: 8px; margin-top: 22px; }
+  .tb { height: 40px; padding: 0 12px; display: flex; align-items: center; font-size: 14px; font-weight: 500; color: var(--primary); border-radius: 20px; }
+  .tb.f { background: var(--primary); color: var(--on-primary); padding: 0 24px; }
+  .tb:disabled { opacity: 0.38; cursor: default; }
 </style>
 </head>
 <body>
-
-<header>
-  <div class="logo">Schwimm<span>plan</span></div>
-  <div class="tagline">Meldeergebnis auf einen Blick &nbsp;·&nbsp; v8</div>
-</header>
-
-<div class="presets-section" id="presetsSection">
-  <div class="section-label">Gespeicherte Wettkämpfe</div>
-  <div id="presetList"></div>
-  <label class="add-btn" id="addBtn">
-    <input type="file" accept="application/pdf" class="file-input" />
-    ＋ PDF hinzufügen <span class="add-sub">· Meldeergebnis</span>
-  </label>
-</div>
-
-<!-- Große Upload-Fläche nur, solange noch kein Wettkampf gespeichert ist -->
-<div id="uploadSection">
-  <div class="section-label" style="margin-bottom:10px">Eigene PDF hochladen</div>
-  <div class="upload-zone" id="uploadZone">
-    <input type="file" accept="application/pdf" class="file-input" />
-    <div class="upload-icon">🏊</div>
-    <div class="upload-label"><strong>PDF hochladen</strong><br>Meldeergebnis antippen oder reinziehen</div>
+<div class="app">
+  <header class="bar">
+    <h1>Schwimmplan</h1>
+    <button class="ib" id="menuBtn" aria-label="Menü" data-ic="more"></button>
+  </header>
+  <div class="menu" id="menu" hidden>
+    <label class="mitem" for="fileInput"><span data-ic="file"></span>PDF hinzufügen</label>
+    <button type="button" id="menuKids"><span data-ic="person"></span>Kinder verwalten</button>
+    <div class="mver">Schwimmplan · Version 9</div>
   </div>
+  <main id="content"></main>
 </div>
-
-<div class="error-box" id="errorBox"></div>
-<div class="loading" id="loading">PDF wird gelesen…</div>
-
-<div style="margin-bottom:20px">
-  <div class="section-label">Meine Kinder</div>
-  <div class="chips" id="chips"></div>
-  <div class="add-row">
-    <input type="text" id="nameInput" placeholder="Name eingeben…" />
-    <button class="btn-add" onclick="addName()">+ Hinzufügen</button>
-  </div>
-</div>
-
-<div id="results">
-  <div class="empty-state">
-    <span class="empty-icon">📄</span>
-    PDF hochladen und Namen eingeben,<br>dann werden die Starts angezeigt.
-  </div>
-</div>
+<label class="fab" id="fab" for="fileInput" hidden><span data-ic="file"></span>PDF hinzufügen</label>
+<input type="file" accept="application/pdf" id="fileInput" class="file-input">
+<div id="overlay"></div>
+<div class="snack" id="snack" hidden></div>
 
 <script>
   // ── Config ──────────────────────────────────────────────────────────────────
   pdfjsLib.GlobalWorkerOptions.workerSrc =
     'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-  const LANE_COLORS = {
-    0:'#7b8cde', 1:'#0077b6', 2:'#0096c7', 3:'#00b4d8', 4:'#48cae4',
-    5:'#90e0ef', 6:'#06d6a0', 7:'#8ac926', 8:'#ffd166', 9:'#f4a261'
-  };
-
   function esc(v) {
     return String(v ?? '').replace(/[&<>"']/g, c =>
       ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
   }
+
+  // Material-Icons (Pfade aus material.io), inline damit sie offline funktionieren
+  const ICONS = {
+    check:  'M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z',
+    add:    'M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z',
+    more:   'M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z',
+    drop:   'M7 10l5 5 5-5z',
+    file:   'M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 14h-3v3h-2v-3H8v-2h3v-3h2v3h3v2zm-3-7V3.5L18.5 9H13z',
+    clock:  'M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z',
+    done:   'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z',
+    del:    'M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z',
+    event:  'M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zM9 14H7v-2h2v2zm4 0h-2v-2h2v2zm4 0h-2v-2h2v2z',
+    person: 'M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z',
+    trophy: 'M19 5h-2V3H7v2H5c-1.1 0-2 .9-2 2v1c0 2.55 1.92 4.63 4.39 4.94.63 1.5 1.98 2.63 3.61 2.96V19H7v2h10v-2h-4v-3.1c1.63-.33 2.98-1.46 3.61-2.96C19.08 12.63 21 10.55 21 8V7c0-1.1-.9-2-2-2zM5 8V7h2v3.82C5.84 10.4 5 9.3 5 8zm14 0c0 1.3-.84 2.4-2 2.82V7h2v1z',
+    pool:   'M22 21c-1.11 0-1.73-.37-2.18-.64-.37-.22-.6-.36-1.15-.36-.56 0-.78.13-1.15.36-.46.27-1.07.64-2.18.64s-1.73-.37-2.18-.64c-.37-.22-.6-.36-1.15-.36-.56 0-.78.13-1.15.36-.46.27-1.08.64-2.19.64-1.11 0-1.73-.37-2.18-.64-.37-.23-.6-.36-1.15-.36s-.78.13-1.15.36c-.46.27-1.08.64-2.19.64v-2c.56 0 .78-.13 1.15-.36.46-.27 1.08-.64 2.19-.64s1.73.37 2.18.64c.37.23.59.36 1.15.36.56 0 .78-.13 1.15-.36.46-.27 1.08-.64 2.19-.64 1.11 0 1.73.37 2.18.64.37.22.6.36 1.15.36s.78-.13 1.15-.36c.45-.27 1.07-.64 2.18-.64s1.73.37 2.18.64c.37.23.59.36 1.15.36v2zm0-4.5c-1.11 0-1.73-.37-2.18-.64-.37-.22-.6-.36-1.15-.36-.56 0-.78.13-1.15.36-.45.27-1.07.64-2.18.64s-1.73-.37-2.18-.64c-.37-.22-.6-.36-1.15-.36-.56 0-.78.13-1.15.36-.45.27-1.07.64-2.18.64s-1.73-.37-2.18-.64c-.37-.22-.6-.36-1.15-.36s-.78.13-1.15.36c-.47.27-1.09.64-2.2.64v-2c.56 0 .78-.13 1.15-.36.45-.27 1.07-.64 2.18-.64s1.73.37 2.18.64c.37.22.6.36 1.15.36.56 0 .78-.13 1.15-.36.45-.27 1.07-.64 2.18-.64s1.73.37 2.18.64c.37.22.6.36 1.15.36s.78-.13 1.15-.36c.45-.27 1.07-.64 2.18-.64s1.73.37 2.18.64c.37.22.6.36 1.15.36v2zM8.67 12c.56 0 .78-.13 1.15-.36.46-.27 1.08-.64 2.19-.64 1.11 0 1.73.37 2.18.64.37.22.6.36 1.15.36s.78-.13 1.15-.36c.12-.07.26-.15.41-.23L10.48 5C8.93 3.45 7.5 2.99 5 3v2.5c1.82-.01 2.89.39 4 1.5l1 1-3.25 3.25c.31.12.56.27.77.39.37.23.59.36 1.15.36z',
+  };
+  function ic(name, cls = '') {
+    return `<svg class="ic ${cls}" viewBox="0 0 24 24" aria-hidden="true"><path d="${ICONS[name]}"/></svg>`;
+  }
+  document.querySelectorAll('[data-ic]').forEach(el => el.insertAdjacentHTML('afterbegin', ic(el.dataset.ic)));
 
   // ── Gespeicherte Wettkämpfe ─────────────────────────────────────────────────
   // Hochgeladene PDFs werden lokal im Browser (IndexedDB) gespeichert – sie verlassen
@@ -326,8 +248,17 @@
     del(id)   { return this.run('readwrite', os => os.delete(id)); },
   };
 
-  let savedComps = [];     // Metadaten der gespeicherten Uploads (ohne PDF-Daten)
-  let activeId   = null;   // 'preset:<i>' oder 'upload:<key>'
+  // ── Zustand ─────────────────────────────────────────────────────────────────
+  let savedComps      = [];        // Metadaten der gespeicherten Uploads (ohne PDF-Daten)
+  let activeId        = null;      // 'preset:<i>' oder 'upload:<key>'
+  let allStarts       = [];
+  let competitionInfo = {};
+  let names           = [];        // Kinder (localStorage)
+  let activeNames     = new Set(); // per Filter-Chip eingeblendet
+  let loading         = false;
+  let errorMsg        = '';
+  let ready           = false;     // gespeicherte Liste geladen
+  const expandedPast  = new Set(); // Kinder, bei denen „vorbei“ aufgeklappt ist
 
   function compList() {
     const presets = PRESETS.map((p, i) => ({ id: 'preset:' + i, name: p.name, subtitle: p.subtitle, preset: true }));
@@ -337,51 +268,29 @@
     return [...uploads, ...presets];
   }
 
-  function renderPresets() {
-    const list = compList();
-    document.getElementById('presetsSection').style.display = list.length ? '' : 'none';
-    document.getElementById('uploadSection').style.display  = list.length ? 'none' : '';
-    const container = document.getElementById('presetList');
-    container.innerHTML = list.map(c => `
-      <div class="preset-row">
-        <button class="preset-btn ${activeId === c.id ? 'active' : ''}" data-open="${esc(c.id)}">
-          <div>
-            <div class="preset-name">${esc(c.name)}</div>
-            <div class="preset-date">${esc(c.subtitle)}</div>
-          </div>
-          <span class="preset-arrow">${activeId === c.id ? '✓' : '→'}</span>
-        </button>
-        ${c.preset ? '' : `<button class="preset-del" data-del="${esc(c.id)}" title="Löschen" aria-label="${esc(c.name)} löschen">✕</button>`}
-      </div>
-    `).join('');
-    container.querySelectorAll('[data-open]').forEach(b => b.onclick = () => openCompetition(b.dataset.open));
-    container.querySelectorAll('[data-del]').forEach(b => b.onclick = () => deleteCompetition(b.dataset.del));
-  }
-
   function setActive(id) {
     activeId = id;
     try { id ? localStorage.setItem('schwimmplan_active', id) : localStorage.removeItem('schwimmplan_active'); } catch (e) {}
-    renderPresets();
   }
 
   async function withLoading(fn) {
-    showError('');
-    document.getElementById('loading').style.display = 'block';
-    document.getElementById('results').innerHTML = '';
+    errorMsg = '';
+    loading  = true;
     allStarts = [];
+    render();
     try {
       await fn();
     } catch (err) {
-      showError('Fehler: ' + err.message);
+      errorMsg = err.message;
     } finally {
-      document.getElementById('loading').style.display = 'none';
+      loading = false;
+      render();
     }
   }
 
   function showParsed(parsed) {
     competitionInfo = parsed.competition;
     allStarts       = parsed.starts;
-    renderResults();
   }
 
   async function parseBuffer(buffer) {
@@ -421,10 +330,12 @@
     if (activeId === id) {
       setActive(null);
       allStarts = [];
-      document.getElementById('results').innerHTML = EMPTY_HTML;
-    } else {
-      renderPresets();
+      competitionInfo = {};
+      const next = compList()[0];
+      if (next) { closeOverlay(); openCompetition(next.id); return; }
     }
+    if (!compList().length) closeOverlay(); else openSheet();
+    render();
   }
 
   async function loadSavedList() {
@@ -436,23 +347,17 @@
     }
   }
 
-  const EMPTY_HTML = document.getElementById('results').innerHTML;
-
-  let names = [];
-  let activeNames = new Set(names);
-  let allStarts = [];
-  let competitionInfo = {};
-
   // ── Upload ──────────────────────────────────────────────────────────────────
-  // Große Fläche (erster Besuch) und kompakter Knopf teilen sich die Logik;
+  // Datei-Auswahl über <label for="fileInput"> (FAB, Menü, Auswahlblatt, Startseite);
   // reinziehen geht auf die ganze Seite.
-  document.querySelectorAll('.file-input').forEach(input => input.addEventListener('change', e => {
+  const fileInput = document.getElementById('fileInput');
+  fileInput.addEventListener('change', e => {
+    closeOverlay();
     handleFile(e.target.files[0]);
     e.target.value = '';   // dieselbe Datei erneut auswählbar
-  }));
+  });
 
-  const dropTargets = [document.getElementById('uploadZone'), document.getElementById('addBtn')];
-  const setDragOver = on => dropTargets.forEach(el => el.classList.toggle('drag-over', on));
+  const setDragOver = on => document.querySelectorAll('.fab, .btnf').forEach(el => el.classList.toggle('drag', on));
   document.addEventListener('dragover', e => {
     if (![...e.dataTransfer.types].includes('Files')) return;
     e.preventDefault(); setDragOver(true);
@@ -466,12 +371,11 @@
 
   function handleFile(file) {
     if (!file) return;
-    if (file.type !== 'application/pdf' && !/\.pdf$/i.test(file.name)) { showError('Bitte eine PDF-Datei hochladen.'); return; }
+    if (file.type !== 'application/pdf' && !/\.pdf$/i.test(file.name)) {
+      errorMsg = 'Bitte eine PDF-Datei auswählen.'; render(); return;
+    }
     processPDF(file);
   }
-
-  // ── PDF.js text extraction ──────────────────────────────────────────────────
-
 
   // ── EasyWk parser ───────────────────────────────────────────────────────────
   const GENDER_RE = /\s*\b(m[äa]nnlich|weiblich|mixed)\b\s*/i;
@@ -620,7 +524,7 @@
     });
   }
 
-  // ── Main processing ─────────────────────────────────────────────────────────
+  // ── PDF einlesen ────────────────────────────────────────────────────────────
   async function extractTextFromBuffer(buffer) {
     const pdf = await pdfjsLib.getDocument({ data: buffer }).promise;
     const allLines = [];
@@ -667,72 +571,53 @@
         const { pdf, parsed: _p, ...meta } = rec;
         savedComps = [...savedComps.filter(x => x.id !== rec.id), meta];
         setActive(rec.id);
+        showSnack(`${shortName(rec.name)} gespeichert`);
       } catch (e) {
-        showError('Hinweis: Die PDF konnte auf diesem Gerät nicht gespeichert werden (privates Fenster?).');
+        showSnack('PDF konnte auf diesem Gerät nicht gespeichert werden (privates Fenster?)');
       }
     });
   }
 
-  // ── Name chips ──────────────────────────────────────────────────────────────
-  function renderChips() {
-    const container = document.getElementById('chips');
-    container.innerHTML = '';
-    names.forEach(n => {
-      const div = document.createElement('div');
-      div.className = 'chip' + (activeNames.has(n) ? '' : ' off');
-      div.innerHTML = `${esc(n)} <span class="chip-x">✕</span>`;
-      div.querySelector('.chip-x').onclick = e => { e.stopPropagation(); removeName(n); };
-      div.onclick = () => toggleName(n);
-      container.appendChild(div);
-    });
-  }
-
+  // ── Kinder ──────────────────────────────────────────────────────────────────
   function saveNames() {
-    localStorage.setItem('schwimmplan_names', JSON.stringify(names));
+    try { localStorage.setItem('schwimmplan_names', JSON.stringify(names)); } catch (e) {}
   }
 
-  function addName() {
-    const input = document.getElementById('nameInput');
-    const val   = input.value.trim();
-    if (val && !names.includes(val)) {
-      names.push(val);
-      activeNames.add(val);
-      saveNames();
-      renderChips();
-      renderResults();
-    }
-    input.value = '';
-    input.focus();
+  function nameMatches(query, swimmerName) {
+    const parts = query.toLowerCase().split(/\s+/).filter(Boolean);
+    return parts.length > 0 && parts.every(p => swimmerName.toLowerCase().includes(p));
+  }
+
+  function addName(val) {
+    val = val.trim();
+    if (!val || names.includes(val)) return;
+    names.push(val);
+    activeNames.add(val);
+    saveNames();
+    render();
   }
 
   function removeName(n) {
     names = names.filter(x => x !== n);
     activeNames.delete(n);
     saveNames();
-    renderChips();
-    renderResults();
+    render();
   }
 
   function toggleName(n) {
     activeNames.has(n) ? activeNames.delete(n) : activeNames.add(n);
-    renderChips();
-    renderResults();
-  }
-
-  document.getElementById('nameInput').addEventListener('keydown', e => {
-    if (e.key === 'Enter') addName();
-  });
-
-  // ── Render results ──────────────────────────────────────────────────────────
-  function timeToMin(t) {
-    if (!t) return 9999;
-    const m = t.match(/(\d{1,2}):(\d{2})/);
-    return m ? parseInt(m[1]) * 60 + parseInt(m[2]) : 9999;
+    render();
   }
 
   // ── Countdown ──────────────────────────────────────────────────────────────
   const SOON_MIN = 30;   // ab hier gelb „Gleich dran“
   const NOW_MIN  = 10;   // so lange nach der ca.-Zeit bleibt „Jetzt dran“ stehen
+
+  function timeToMin(t) {
+    if (!t) return 9999;
+    const m = t.match(/(\d{1,2}):(\d{2})/);
+    return m ? parseInt(m[1]) * 60 + parseInt(m[2]) : 9999;
+  }
 
   // Absoluter Zeitpunkt eines Starts (ms) aus Tag ("Samstag 26.09.2026") bzw.
   // Wettkampfdatum und ca.-Uhrzeit; null wenn nicht bestimmbar.
@@ -758,157 +643,271 @@
     return states;
   }
 
-  function countdownHtml(mins) {
+  function countdownText(mins) {
     const d = Math.floor(mins / 1440), h = Math.floor(mins % 1440 / 60), m = mins % 60;
-    const part = (n, u) => `<span class="cd-num">${n}</span><span class="cd-unit">${u}</span>`;
-    let out = '';
-    if (d) out += part(d, d === 1 ? 'Tag' : 'Tage');
-    if (d || h) out += part(h, 'Std');
-    out += part(m, 'Min');
-    return `<span class="cd-in">in</span>${out}`;
+    const part = (n, u) => `${n}<small>${u}</small>`;
+    if (d) return 'in ' + part(d, d === 1 ? 'Tag' : 'Tage') + (h ? part(h, 'Std') : '');
+    if (h) return 'in ' + part(h, 'Std') + part(m, 'Min');
+    return 'in ' + part(m, 'Min');
   }
 
+  // ── Darstellung ─────────────────────────────────────────────────────────────
   const NEXT_LABEL = { next: 'Nächster Start', soon: 'Gleich dran', now: 'Jetzt dran' };
 
-  function renderStartCard(s, cd) {
-    const card = renderStartCardInner(s, cd);
-    if (!cd || cd.past) return card;
-    return `<div class="next-wrap ${cd.state}">
-      <div class="next-label"><span><span class="pulse"></span>${NEXT_LABEL[cd.state]}</span><span>Bahn ${s.laneNum}</span></div>
-      ${card}
-    </div>`;
+  function shortName(n) { return n.length > 40 ? n.slice(0, 38) + '…' : n; }
+  function weekday(day) { return (day || '').split(' ')[0]; }
+
+  function followUpText(f) {
+    const win = f.from && f.to ? `ca. ${f.from}–${f.to}` : (f.from ? `nach ca. ${f.from}` : '');
+    return `${esc(f.label)} möglich${win ? ', ' + win : ''}`;
   }
 
-  function renderStartCardInner(s, cd) {
-    const color = LANE_COLORS[s.laneNum] || '#00c8ff';
+  function laneHtml(s) { return `<div class="ln"><b>${s.laneNum}</b><span>Bahn</span></div>`; }
+
+  function heroHtml(s, cd, multiDay) {
+    const round = s.round ? `<span class="tag">${esc(s.round)}</span>` : '';
     const mz    = s.meldezeit && s.meldezeit !== '00:00,00' ? ` · ${esc(s.meldezeit)}` : '';
-    const round = s.round ? ` <span class="round-badge">${esc(s.round)}</span>` : '';
-    const follow = s.followUps.map(f => {
-      const win = f.from && f.to ? `ca. ${f.from}–${f.to} Uhr` : (f.from ? `nach ca. ${f.from} Uhr` : '');
-      return `<div class="follow-up">↳ ggf. WK ${f.nr} · ${esc(f.label)}${win ? ' · ' + win : ''}</div>`;
-    }).join('');
-    const cls = !cd ? '' : cd.past ? ' past' : ` next ${cd.state}`;
-    const right = cd && cd.past
-      ? `<div class="past-tag">✓ vorbei</div>`
-      : `<div class="lane-num" style="color:${color}">${s.laneNum}</div>
-        <div class="lane-label">Bahn</div>`;
-    const countdown = cd && !cd.past
-      ? `<div class="countdown">${cd.state === 'now' ? '<span class="cd-now">Jetzt</span>' : countdownHtml(cd.mins)}</div>`
-      : '';
-    return `<div class="start-card${cls}">
-      <div class="lane-bar" style="background:${color}"></div>
-      <div class="start-time"><small>ca.</small>${esc(s.time)} Uhr</div>
-      <div>
-        <div class="start-event">${esc(s.event)}${round}</div>
-        <div class="start-meta">WK ${s.wettkampfNr} · Lauf ${esc(s.heat)}${mz}</div>
-        ${follow}
+    const fin   = s.followUps.map(f => `<div class="fin">${ic('trophy', 's18')} ${followUpText(f)}</div>`).join('');
+    const label = NEXT_LABEL[cd.state] + (multiDay && cd.state === 'next' ? ' · ' + esc(weekday(s.day)) : '');
+    return `<div class="hero ${cd.state}">
+      <div class="lab">${ic('clock', 's18')} ${label}</div>
+      <div class="cd">${cd.state === 'now' ? 'Jetzt' : countdownText(cd.mins)}</div>
+      <div class="row">
+        <div><div class="ev">${esc(s.time)} · ${esc(s.event)} ${round}</div>
+          <div class="su">WK ${s.wettkampfNr} · Lauf ${esc(s.heat)}${mz}</div>${fin}</div>
+        ${laneHtml(s)}
       </div>
-      <div>
-        ${right}
-      </div>
-      ${countdown}
     </div>`;
   }
 
-  function renderResults() {
-    const area = document.getElementById('results');
-    if (allStarts.length === 0) return;
+  function itemHtml(s, past) {
+    const round = s.round ? ` · ${esc(s.round)}` : '';
+    const fin   = past ? '' : s.followUps.map(f => `<div class="fn">${followUpText(f)}</div>`).join('');
+    return `<div class="li${past ? ' past' : ''}">
+      <div class="tm">${esc(s.time)}</div>
+      <div><div class="hl">${esc(s.event)}</div><div class="su">WK ${s.wettkampfNr} · Lauf ${esc(s.heat)}${round}${past ? ' · Vorbei' : ''}</div>${fin}</div>
+      ${past ? `<div class="ln">${ic('done')}</div>` : laneHtml(s)}
+    </div>`;
+  }
 
-    // Build swimmer map (keyed by name + Jahrgang, so namesakes stay apart)
-    const swimmerMap = new Map();
-    allStarts.forEach(s => {
-      const matched = [...activeNames].find(n =>
-        n.toLowerCase().split(/\s+/).every(part => s.name.toLowerCase().includes(part))
-      );
-      if (!matched) return;
-      const key = s.name + '|' + s.jg;
-      if (!swimmerMap.has(key)) swimmerMap.set(key, { name: s.name, jg: s.jg, club: s.club, starts: [] });
-      swimmerMap.get(key).starts.push(s);
+  function swimmerHtml(data, key, colorIdx, now) {
+    const starts = data.starts;
+    const cds    = countdownStates(starts, now);
+    const multiDay = new Set(starts.map(s => s.day)).size > 1;
+    const hero   = starts.find(s => cds.get(s) && !cds.get(s).past);
+    const past   = starts.filter(s => cds.get(s) && cds.get(s).past);
+    const rest   = starts.filter(s => s !== hero && !past.includes(s));
+
+    let html = `<section class="sec">
+      <div class="sh"><div class="av av${colorIdx % 4}">${esc(data.name.charAt(0))}</div>
+        <div><div class="n">${esc(data.name)}</div>
+        <div class="s">${esc(data.club)} · ${starts.length} Start${starts.length !== 1 ? 's' : ''}</div></div></div>`;
+
+    if (hero) {
+      html += heroHtml(hero, cds.get(hero), multiDay);
+    } else if (past.length === starts.length) {
+      const last = starts[starts.length - 1];
+      html += `<div class="hero done"><div class="lab">${ic('done', 's18')} ${starts.length === 1 ? 'Start' : `Alle ${starts.length} Starts`} geschafft</div>
+        <div class="sub2">Letzter Start: ${esc(last.time)} · ${esc(last.event)}</div></div>`;
+    }
+
+    let items = '';
+    let lastDay = hero ? hero.day : null;
+    rest.forEach(s => {
+      if (multiDay && s.day !== lastDay) items += `<div class="day">${esc(s.day)}</div>`;
+      lastDay = s.day;
+      items += itemHtml(s, false);
     });
-    swimmerMap.forEach(d => d.starts.sort((a, b) =>
+    if (past.length) {
+      const open = expandedPast.has(key);
+      items += `<button class="more" data-past="${esc(key)}" aria-expanded="${open}">
+        <span>${past.length} Start${past.length !== 1 ? 's' : ''} vorbei</span>${ic('drop', open ? 'up' : '')}</button>`;
+      if (open) items += past.map(s => itemHtml(s, true)).join('');
+    }
+    if (items) html += `<div class="list">${items}</div>`;
+    return html + `</section>`;
+  }
+
+  function resultsHtml() {
+    if (!allStarts.length) return '';
+    if (!names.length) {
+      return `<p class="notfound">Tippe auf „＋ Kind“ und gib den Namen deines Kindes ein – dann erscheinen hier seine Starts.</p>`;
+    }
+    const swimmers = new Map();
+    const found = new Set();
+    allStarts.forEach(s => {
+      const n = [...activeNames].find(q => nameMatches(q, s.name));
+      if (!n) return;
+      found.add(n);
+      const key = s.name + '|' + s.jg;
+      if (!swimmers.has(key)) swimmers.set(key, { name: s.name, club: s.club, color: names.indexOf(n), starts: [] });
+      swimmers.get(key).starts.push(s);
+    });
+    swimmers.forEach(d => d.starts.sort((a, b) =>
       (a.section - b.section) || (timeToMin(a.time) - timeToMin(b.time))));
-    const total = [...swimmerMap.values()].reduce((sum, d) => sum + d.starts.length, 0);
-
-    if (swimmerMap.size === 0) {
-      area.innerHTML = `<div class="empty-state"><span class="empty-icon">🔍</span>Keine Starts für die angegebenen Namen gefunden.</div>`;
-      return;
-    }
-
-    let html = '';
-
-    if (competitionInfo.name) {
-      html += `<div class="info-bar"><span class="comp-name">${esc(competitionInfo.name)}</span><span>${esc(competitionInfo.date || '')}</span></div>`;
-    }
-
-    html += `<div class="results-header"><div class="results-title">Deine Starts</div><div class="results-count">${total} Start${total !== 1 ? 's' : ''} gesamt</div></div>`;
 
     const now = Date.now();
-    const entries = [...swimmerMap.values()];
-    entries.forEach((data, idx) => {
-      const cds = countdownStates(data.starts, now);
-      const initials = data.name.split(' ').map(w => w[0]).slice(0, 2).join('');
-
-      html += `<div class="swimmer-block">
-        <div class="swimmer-header">
-          <div class="avatar">${esc(initials)}</div>
-          <div>
-            <div class="swimmer-name">${esc(data.name)}</div>
-            <div class="swimmer-sub">Jahrgang ${esc(data.jg)} · ${esc(data.club)} · ${data.starts.length} Start${data.starts.length !== 1 ? 's' : ''}</div>
-          </div>
-        </div>`;
-
-      // Group starts by day (starts are already in chronological order)
-      const days = [...new Set(data.starts.map(s => s.day))];
-      if (days.length > 1) {
-        days.forEach(day => {
-          if (day) html += `<div class="day-label">${esc(day)}</div>`;
-          data.starts.filter(s => s.day === day).forEach(s => { html += renderStartCard(s, cds.get(s)); });
-        });
-      } else {
-        data.starts.forEach(s => { html += renderStartCard(s, cds.get(s)); });
-      }
-
-      html += `</div>`;
-      if (idx < entries.length - 1) html += `<div class="divider"></div>`;
-    });
-
-    area.innerHTML = html;
+    let html = '';
+    [...swimmers.entries()].forEach(([key, d], i) => { html += swimmerHtml(d, key, d.color, now); });
+    const missing = [...activeNames].filter(n => !found.has(n));
+    if (missing.length) {
+      html += `<p class="notfound">Nicht gefunden in diesem Wettkampf: ${missing.map(esc).join(', ')}</p>`;
+    }
+    return html;
   }
 
-  // ── Helpers ─────────────────────────────────────────────────────────────────
-  function showError(msg) {
-    const el = document.getElementById('errorBox');
-    el.textContent = msg;
-    el.style.display = msg ? 'block' : 'none';
+  function emptyHtml() {
+    return `<div class="empty">
+      <div class="big">${ic('pool')}</div>
+      <h2>Starts auf einen Blick</h2>
+      <p>Lade das Meldeergebnis des Wettkampfs als PDF (aus EasyWk). Die Datei bleibt auf deinem Handy.</p>
+      <label class="btnf" for="fileInput">${ic('file')} PDF auswählen</label>
+      <div class="hint">oder am Computer hierher ziehen</div>
+      <div class="steps">
+        <div class="st"><b>1</b>Meldeergebnis-PDF auswählen</div>
+        <div class="st"><b>2</b>Namen deiner Kinder eingeben</div>
+        <div class="st"><b>3</b>Starts mit Uhrzeit, Lauf und Bahn sehen</div>
+      </div>
+    </div>`;
+  }
+
+  function render() {
+    const comps   = compList();
+    const hasData = comps.length > 0 || allStarts.length > 0;
+    const firstRun = ready && !hasData && !loading;
+    let html = '';
+
+    if (errorMsg) html += `<div class="errbox">${esc(errorMsg)}</div>`;
+
+    if (firstRun) {
+      html += emptyHtml();
+    } else if (ready || loading) {
+      const active = comps.find(c => c.id === activeId);
+      if (comps.length) {
+        html += `<button class="switch" id="switchBtn"><span>${esc(active ? active.name : 'Wettkampf auswählen')}</span>${ic('drop')}</button>`;
+      }
+      html += `<div class="chips">` + names.map(n => `<button class="fc${activeNames.has(n) ? ' on' : ''}" data-kid="${esc(n)}">${activeNames.has(n) ? ic('check', 's18') : ''}${esc(n)}</button>`).join('')
+        + `<button class="fc add" id="addKid">${ic('add', 's18')} Kind</button></div>`;
+      if (loading) html += `<div class="prog"><i></i></div><div class="prog-text">PDF wird gelesen …</div>`;
+      else html += resultsHtml();
+    }
+
+    const content = document.getElementById('content');
+    content.innerHTML = html;
+    document.getElementById('fab').hidden = !hasData;
+
+    content.querySelectorAll('[data-kid]').forEach(b => b.onclick = () => toggleName(b.dataset.kid));
+    content.querySelectorAll('[data-past]').forEach(b => b.onclick = () => {
+      const k = b.dataset.past;
+      expandedPast.has(k) ? expandedPast.delete(k) : expandedPast.add(k);
+      render();
+    });
+    const sw = document.getElementById('switchBtn'); if (sw) sw.onclick = openSheet;
+    const ak = document.getElementById('addKid');    if (ak) ak.onclick = openKidDialog;
+  }
+
+  // ── Menü, Auswahlblatt, Dialog, Snackbar ─────────────────────────────────────
+  const overlay = document.getElementById('overlay');
+  function closeOverlay() { overlay.innerHTML = ''; }
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeOverlay(); closeMenu(); } });
+
+  const menu = document.getElementById('menu');
+  function closeMenu() { menu.hidden = true; }
+  document.getElementById('menuBtn').onclick = e => { e.stopPropagation(); menu.hidden = !menu.hidden; };
+  document.addEventListener('click', e => { if (!menu.contains(e.target)) closeMenu(); });
+  menu.querySelector('label').addEventListener('click', closeMenu);
+  document.getElementById('menuKids').onclick = () => { closeMenu(); openKidDialog(); };
+
+  function openSheet() {
+    const items = compList().map(c => `
+      <div class="mi${c.id === activeId ? ' sel' : ''}" data-open="${esc(c.id)}" role="button">
+        ${ic('event')}
+        <div class="x"><div class="a">${esc(c.name)}</div><div class="b">${esc(c.subtitle)}</div></div>
+        ${c.id === activeId ? ic('check') : ''}
+        ${c.preset ? '' : `<button class="ib" data-del="${esc(c.id)}" aria-label="${esc(c.name)} löschen">${ic('del')}</button>`}
+      </div>`).join('');
+    overlay.innerHTML = `<div class="scrim" data-close></div>
+      <div class="sheet" role="dialog" aria-label="Wettkampf">
+        <div class="handle"></div><h3>Wettkampf</h3>${items}
+        <div class="divi"></div>
+        <label class="mi act" for="fileInput">${ic('file')}<div class="x"><div class="a">PDF hinzufügen</div></div></label>
+      </div>`;
+    overlay.querySelector('[data-close]').onclick = closeOverlay;
+    overlay.querySelectorAll('[data-open]').forEach(el => el.onclick = e => {
+      if (e.target.closest('[data-del]')) return;
+      closeOverlay();
+      if (el.dataset.open !== activeId || !allStarts.length) openCompetition(el.dataset.open);
+    });
+    overlay.querySelectorAll('[data-del]').forEach(b => b.onclick = () => deleteCompetition(b.dataset.del));
+  }
+
+  function openKidDialog() {
+    const list = names.length ? `<div class="divi" style="margin:18px 0 8px"></div>` + names.map(n => `
+      <div class="kidrow"><span>${esc(n)}</span><button class="ib" data-rm="${esc(n)}" aria-label="${esc(n)} entfernen">${ic('del')}</button></div>`).join('') : '';
+    overlay.innerHTML = `<div class="scrim" data-close></div>
+      <div class="dlg" role="dialog" aria-label="Kind hinzufügen">
+        <div class="hic">${ic('person')}</div>
+        <h3>Kind hinzufügen</h3>
+        <p>Name so, wie er im Meldeergebnis steht. Vor- oder Nachname reicht meist.</p>
+        <div class="tf"><input id="kidInput" autocomplete="off" autocapitalize="words"><label for="kidInput">Name</label></div>
+        <div class="help" id="kidHelp"></div>
+        ${list}
+        <div class="acts"><button class="tb" data-close>Abbrechen</button><button class="tb f" id="kidOk" disabled>Hinzufügen</button></div>
+      </div>`;
+    const input = document.getElementById('kidInput');
+    const help  = document.getElementById('kidHelp');
+    const ok    = document.getElementById('kidOk');
+    const update = () => {
+      const v = input.value.trim();
+      ok.disabled = !v;
+      if (!v || !allStarts.length) { help.textContent = ''; return; }
+      const hits = allStarts.filter(s => nameMatches(v, s.name));
+      const people = new Set(hits.map(s => s.name));
+      help.textContent = !hits.length
+        ? 'Im aktuellen Wettkampf nicht gefunden'
+        : `Gefunden: ${hits.length} Start${hits.length !== 1 ? 's' : ''}` + (people.size > 1 ? ` (${people.size} Personen)` : ` · ${[...people][0]}`);
+    };
+    const submit = () => { if (input.value.trim()) { addName(input.value); closeOverlay(); } };
+    input.addEventListener('input', update);
+    input.addEventListener('keydown', e => { if (e.key === 'Enter') submit(); });
+    ok.onclick = submit;
+    overlay.querySelectorAll('[data-close]').forEach(el => el.onclick = closeOverlay);
+    overlay.querySelectorAll('[data-rm]').forEach(b => b.onclick = () => { removeName(b.dataset.rm); openKidDialog(); });
+    input.focus();
+  }
+
+  let snackTimer = null;
+  function showSnack(msg) {
+    const el = document.getElementById('snack');
+    el.textContent = msg; el.hidden = false;
+    clearTimeout(snackTimer);
+    snackTimer = setTimeout(() => { el.hidden = true; }, 3500);
   }
 
   // ── Init ─────────────────────────────────────────────────────────────────────
-  // Restore names from localStorage
-  const savedNames = localStorage.getItem('schwimmplan_names');
-  if (savedNames) {
-    try {
-      names = JSON.parse(savedNames);
-      activeNames = new Set(names);
-    } catch(e) {}
-  }
+  try {
+    names = JSON.parse(localStorage.getItem('schwimmplan_names') || '[]');
+    if (!Array.isArray(names)) names = [];
+  } catch (e) { names = []; }
+  activeNames = new Set(names);
+  render();
 
-  renderPresets();
-  renderChips();
-
-  // Zuletzt geöffneten Wettkampf wiederherstellen
+  // Zuletzt geöffneten Wettkampf wiederherstellen (sonst den neuesten)
   (async () => {
     await loadSavedList();
+    ready = true;
     let last = null;
     try { last = localStorage.getItem('schwimmplan_active'); } catch (e) {}
-    const exists = last && compList().some(c => c.id === last);
-    renderPresets();
-    if (exists) openCompetition(last);
+    const list = compList();
+    const target = list.some(c => c.id === last) ? last : (list[0] && list[0].id);
+    if (target) openCompetition(target); else render();
   })();
 
   // Countdown live halten: alle 30 s und sofort beim Zurückkehren in die App
-  setInterval(() => { if (!document.hidden) renderResults(); }, 30000);
-  document.addEventListener('visibilitychange', () => { if (!document.hidden) renderResults(); });
-  window.addEventListener('focus', () => renderResults());
+  const refresh = () => { if (!document.hidden && !loading) render(); };
+  setInterval(refresh, 30000);
+  document.addEventListener('visibilitychange', refresh);
+  window.addEventListener('focus', refresh);
 
   // Offline-Unterstützung (nur über http(s), nicht bei file://)
   if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {

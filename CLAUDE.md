@@ -29,23 +29,30 @@ Finals stehen nur in der Wettkampffolge (ohne Läufe). Für jeden Vorlauf-Start 
 Finals im selben Abschnitt gesucht (gleiche Strecke + Lage + Geschlecht) und mit einem
 Zeitfenster aus den benachbarten Wettkämpfen angezeigt.
 
+## Design
+Material Design 3, helles Schema im Stil der Google-Apps (Farben als CSS-Variablen in `:root`,
+Systemschrift/Roboto, Material-Icons inline als SVG-Pfade in `ICONS`). Kein Dunkelmodus.
+Aufbau: Top-App-Bar mit Menü · Wettkampf-Auswahl (Bottom-Sheet) · Kinder als Filter-Chips
+(„＋ Kind“ öffnet Dialog mit Live-Namensprüfung und Liste zum Entfernen) · pro Kind Countdown-Karte +
+Liste, vergangene Starts eingeklappt · FAB „PDF hinzufügen“ · Snackbar. Ohne gespeicherten Wettkampf:
+Startseite mit „PDF auswählen“. UI wird komplett über `render()` aus dem Zustand neu gezeichnet.
+
 ## Features
 - Namen der Kinder per Chip-UI, gespeichert in localStorage
 - Gespeicherte Wettkämpfe (Presets) per fetch() aus dem gleichen Verzeichnis – derzeit leer.
   Meldeergebnis-PDFs enthalten personenbezogene Daten (Namen, Jahrgänge) und sollen **nicht** ins
   Repo; zum Testen lokal ablegen (`*.pdf` steht in `.gitignore`).
-- Eigene PDF hochladen (Drag & Drop auf die ganze Seite oder Dateiauswahl). Große Upload-Fläche nur,
-  solange kein Wettkampf gespeichert ist; danach kompakter Knopf „＋ PDF hinzufügen“ unter der Liste. Hochgeladene PDFs werden lokal im Browser
+- Eigene PDF hochladen (Drag & Drop auf die ganze Seite oder Dateiauswahl über FAB, Menü, Auswahlblatt).
+  Hochgeladene PDFs werden lokal im Browser
   gespeichert (IndexedDB `schwimmplan`, Store `competitions`: PDF + Parse-Ergebnis) und erscheinen unter
-  „Gespeicherte Wettkämpfe“ (mit Löschen-Knopf). Gleicher Wettkampf (Name + Datum) ersetzt den alten Eintrag.
+  der Wettkampf-Auswahl (mit Löschen-Knopf). Gleicher Wettkampf (Name + Datum) ersetzt den alten Eintrag.
   Bei Parser-Änderungen `PARSER_VERSION` hochzählen, dann werden gespeicherte PDFs neu eingelesen.
 - Zuletzt geöffneter Wettkampf (`schwimmplan_active` in localStorage) wird beim Start wieder geöffnet
 - Bei mehrtägigen Wettkämpfen: Starts chronologisch nach Tag gruppiert mit Tages-Label
-- Farbkodierung nach Bahnnummer (0–9)
 - Vorlauf/Finale-Badge, bei Vorläufen Hinweis auf mögliches Finale inkl. Zeitfenster
-- Countdown pro Kind: nächster Start hervorgehoben (blau „Nächster Start“, gelb „Gleich dran“ ab
-  `SOON_MIN` = 30 Min, grün „Jetzt dran“ bis `NOW_MIN` = 10 Min nach der ca.-Zeit), vergangene Starts
-  gedimmt mit „✓ vorbei“. Aktualisiert alle 30 s und beim Zurückkehren in die App (visibilitychange/focus).
+- Countdown-Karte pro Kind (blau „Nächster Start“, gelb „Gleich dran“ ab `SOON_MIN` = 30 Min,
+  grün „Jetzt dran“ bis `NOW_MIN` = 10 Min nach der ca.-Zeit, „Alle Starts geschafft“ am Ende);
+  vergangene Starts eingeklappt („N Starts vorbei“). Aktualisiert alle 30 s und beim Zurückkehren in die App (visibilitychange/focus).
 - PWA: Service Worker cacht App, PDF.js und geöffnete Preset-PDFs (beim Ändern von Dateien `CACHE` in `sw.js` hochzählen)
 
 ## Deployment
