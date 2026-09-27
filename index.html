@@ -46,11 +46,10 @@
   .ib { width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--var); }
   .ib:active, .ib:hover { background: rgba(68,71,70,0.08); }
   .menu { position: absolute; right: 8px; top: 56px; background: var(--sheet); border-radius: 4px; padding: 8px 0; min-width: 220px; box-shadow: 0 2px 6px 2px rgba(0,0,0,.15), 0 1px 2px rgba(0,0,0,.3); z-index: 20; }
-  .menu button, .menu .mitem, .menu .mver { display: flex; align-items: center; gap: 12px; width: 100%; height: 48px; padding: 0 12px; font-size: 14px; text-align: left; color: var(--on); }
+  .menu button, .menu .mitem { display: flex; align-items: center; gap: 12px; width: 100%; height: 48px; padding: 0 12px; font-size: 14px; text-align: left; color: var(--on); }
   .menu button .ic, .menu .mitem .ic { color: var(--var); }
   .menu button:hover, .menu .mitem:hover { background: rgba(31,31,31,0.08); }
   .menu .mitem { cursor: pointer; }
-  .menu .mver { color: var(--var); font-size: 12px; height: 36px; }
 
   /* Wettkampf-Auswahl + Filter-Chips */
   .switch { display: inline-flex; align-items: center; gap: 4px; margin: 0 16px 12px; padding: 6px 8px 6px 14px; min-height: 36px; border-radius: 8px; background: var(--chip); font-size: 14px; font-weight: 500; max-width: calc(100% - 32px); text-align: left; }
@@ -180,10 +179,9 @@
     <button type="button" id="menuInstall" hidden><span data-ic="install"></span>App installieren</button>
     <label class="mitem" for="fileInput"><span data-ic="file"></span>Wettkampf hinzufügen</label>
     <button type="button" id="menuKids"><span data-ic="person"></span>Kinder verwalten</button>
-    <div class="mver">Schwimmplan · Version 14</div>
   </div>
   <main id="content"></main>
-  <footer class="foot">(Private Website · Nur private Nutzung · Kontakt: <a href="mailto:joerg@schiller.guru">joerg@schiller.guru</a>)</footer>
+  <footer class="foot">(Nur private Nutzung · Kontakt: <a href="mailto:joerg@schiller.guru">joerg@schiller.guru</a> · v15)</footer>
 </div>
 <input type="file" accept="application/pdf" id="fileInput" class="file-input">
 <div id="overlay"></div>
