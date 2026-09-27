@@ -78,18 +78,22 @@
   .sh .n { font-size: 16px; font-weight: 500; } .sh .s { font-size: 14px; color: var(--var); }
 
   /* Countdown-Karte */
-  .hero { border-radius: 24px; padding: 16px 16px 14px; margin-bottom: 8px; background: var(--pc); color: var(--opc); }
+  .hero { border-radius: 24px; padding: 18px 20px; margin-bottom: 8px; background: var(--pc); color: var(--opc); }
   .hero.soon { background: var(--warn); color: var(--owarn); }
   .hero.now  { background: var(--ok);   color: var(--ook); }
   .hero.done { background: var(--card); color: var(--var); border: 1px solid var(--line); }
+  /* Kopfzeile: Status links, Countdown rechts (bricht auf schmalen Handys um) */
+  .hero .top { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 4px 12px; }
   .hero .lab { display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 500; }
-  .hero .cd { font-size: 45px; line-height: 52px; margin: 6px 0 2px; letter-spacing: -0.5px; }
-  .hero .cd small { font-size: 22px; margin: 0 8px 0 4px; letter-spacing: 0; }
-  .hero .row { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; }
-  .hero .ev { font-size: 16px; font-weight: 500; }
-  .hero .su { font-size: 14px; opacity: 0.85; }
-  .hero .fin { font-size: 13px; margin-top: 6px; display: flex; gap: 4px; align-items: center; }
-  .hero .ln { text-align: center; min-width: 56px; border-radius: 16px; padding: 6px 8px; background: rgba(255,255,255,0.55); flex-shrink: 0; }
+  .hero .cd { font-size: 24px; line-height: 32px; font-weight: 500; white-space: nowrap; }
+  .hero .cd small { font-size: 14px; font-weight: 400; margin: 0 6px 0 3px; }
+  .hero .cd small:last-child { margin-right: 0; }
+  .hero .row { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 14px; padding-top: 14px;
+               border-top: 1px solid rgba(0,0,0,0.1); border-top-color: color-mix(in srgb, currentColor 15%, transparent); }
+  .hero .ev { font-size: 18px; line-height: 26px; font-weight: 500; }
+  .hero .su { font-size: 14px; line-height: 20px; margin-top: 4px; opacity: 0.85; }
+  .hero .fin { font-size: 13px; line-height: 20px; margin-top: 12px; display: flex; gap: 4px; align-items: center; }
+  .hero .ln { text-align: center; min-width: 56px; border-radius: 16px; padding: 10px 12px; background: rgba(255,255,255,0.55); flex-shrink: 0; }
   .hero .ln b { display: block; font-size: 28px; font-weight: 500; line-height: 32px; }
   .hero .ln span { font-size: 12px; }
   .hero.done .sub2 { font-size: 14px; margin-top: 6px; }
@@ -176,7 +180,7 @@
     <button type="button" id="menuInstall" hidden><span data-ic="install"></span>App installieren</button>
     <label class="mitem" for="fileInput"><span data-ic="file"></span>Wettkampf hinzufügen</label>
     <button type="button" id="menuKids"><span data-ic="person"></span>Kinder verwalten</button>
-    <div class="mver">Schwimmplan · Version 12</div>
+    <div class="mver">Schwimmplan · Version 13</div>
   </div>
   <main id="content"></main>
   <footer class="foot">(Private Website · Nur private Nutzung · Kontakt: <a href="mailto:joerg@schiller.guru">joerg@schiller.guru</a>)</footer>
@@ -678,8 +682,10 @@
     const fin   = s.followUps.map(f => `<div class="fin">${ic('trophy', 's18')} ${followUpText(f)}</div>`).join('');
     const label = NEXT_LABEL[cd.state] + (multiDay && cd.state === 'next' ? ' · ' + esc(weekday(s.day)) : '');
     return `<div class="hero ${cd.state}">
-      <div class="lab">${ic('clock', 's18')} ${label}</div>
-      <div class="cd">${cd.state === 'now' ? 'Jetzt' : countdownText(cd.mins)}</div>
+      <div class="top">
+        <div class="lab">${ic('clock', 's18')} ${label}</div>
+        <div class="cd">${cd.state === 'now' ? 'Jetzt' : countdownText(cd.mins)}</div>
+      </div>
       <div class="row">
         <div><div class="ev">${esc(s.time)} · ${esc(s.event)} ${round}</div>
           <div class="su">WK ${s.wettkampfNr} · Lauf ${esc(s.heat)}${mz}</div>${fin}</div>
