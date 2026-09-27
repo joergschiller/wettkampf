@@ -51,7 +51,7 @@ Startseite mit „PDF auswählen“. UI wird komplett über `render()` aus dem Z
 - Zuletzt geöffneter Wettkampf (`schwimmplan_active` in localStorage) wird beim Start wieder geöffnet
 - Bei mehrtägigen Wettkämpfen: Starts chronologisch nach Tag gruppiert mit Tages-Label
 - Vorlauf/Finale-Badge, bei Vorläufen Hinweis auf mögliches Finale inkl. Zeitfenster
-- Countdown-Karte pro Kind (blau „Nächster Start“, gelb „Gleich dran“ ab `SOON_MIN` = 30 Min,
+- Countdown-Karte pro Kind (Countdown kompakt rechts in der Kopfzeile neben dem Status, darunter Trennlinie und Start-Details; blau „Nächster Start“, gelb „Gleich dran“ ab `SOON_MIN` = 30 Min,
   grün „Jetzt dran“ bis `NOW_MIN` = 10 Min nach der ca.-Zeit, „Alle Starts geschafft“ am Ende);
   vergangene Starts eingeklappt („N Starts vorbei“). Aktualisiert alle 30 s und beim Zurückkehren in die App (visibilitychange/focus).
 - Menüeintrag „App installieren“: nutzt `beforeinstallprompt` (Chrome/Edge/Samsung), auf iPhone/iPad
