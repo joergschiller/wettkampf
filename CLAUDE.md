@@ -58,7 +58,7 @@ Startseite mit „PDF auswählen“. UI wird komplett über `render()` aus dem Z
 
 ## Deployment
 Nicht indexieren: `<meta name="robots" content="noindex, nofollow">` in `index.html`. Kein `robots.txt`
-mit Disallow anlegen (dann sieht Google das noindex nicht). Fußzeile: „Private Website · Kontakt:
+mit Disallow anlegen (dann sieht Google das noindex nicht). Fußzeile: „Private Website · Nur private Nutzung · Kontakt:
 joerg@schiller.guru“.
 GitHub Pages: `main`-Branch, Root-Verzeichnis, Repo `joergschiller/wettkampf`.
 Live unter https://wettkampf.schiller.guru/ (Custom Domain über die Datei `CNAME` – nicht löschen;
